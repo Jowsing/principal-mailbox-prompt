@@ -22,7 +22,9 @@ Run these gates in order before any business implementation, task pack, mock pre
 2. **Homepage elements**: after style and before image generation, ask with `home-elements-dialog.mjs --mode questions`; save `homepage.answers.json` with `"__confirmedByUser": true`, or after timeout run `home-elements-dialog.mjs --mode defaults > homepage.answers.json`.
 3. **Design image**: generate a prompt with `ui-style-intake.mjs --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json`, then create one 登录页+首页 design image, preferably with imagegen2. Ask for confirmation; if no answer after 5 minutes, accept the image.
 
-Design image rules: it must follow the whole skill contract, confirmed homepage elements, 登录页/首页 only, login-only 我的信件 secondary view, React + Ant Design default component model, error/loading/disabled states, SMS countdown, and preview/production separation. Enabled elements must appear; disabled or unconfirmed modules must not. The later code must follow the confirmed design image for structure, module placement, hierarchy, and interaction states.
+Design image rules: it must strictly follow the whole skill contract, confirmed homepage elements, 登录页/首页 only, login-only 我的信件 secondary view, React + Ant Design default component model, error/loading/disabled states, SMS countdown, and preview/production separation. Enabled elements must appear; disabled or unconfirmed modules must not. If the image omits required elements or invents modules, regenerate it before coding.
+
+Design-to-code rules: after design confirmation, run `design-fidelity-brief.mjs` and create `design-fidelity.map.md` before UI coding. The code must restore the confirmed design one-to-one for page structure, module placement, visual hierarchy, density, and interaction-state presentation. After implementation, preview and screenshot 登录页 and 首页, compare them against the design image, and keep iterating until there is no obvious structural or visual mismatch.
 
 ## Fixed Contract
 
@@ -45,6 +47,7 @@ node "$SKILL_DIR/scripts/ui-style-intake.mjs" --mode prompt --style-file ui-styl
 node "$SKILL_DIR/scripts/detect-build-artifacts.mjs" --root .
 node "$SKILL_DIR/scripts/task-pack.mjs" --mode context --root . --style-file ui-style.brief.md --answers homepage.answers.json --effect-image <approved-image>
 node "$SKILL_DIR/scripts/task-pack.mjs" --mode write --root . --out principal-mailbox-task-pack --style-file ui-style.brief.md --answers homepage.answers.json --effect-image <approved-image>
+node "$SKILL_DIR/scripts/design-fidelity-brief.mjs" --mode brief --style-file ui-style.brief.md --answers homepage.answers.json --effect-image <approved-image>
 node "$SKILL_DIR/scripts/frontend-prompt-kit.mjs" --mode steps --style-file ui-style.brief.md --answers homepage.answers.json --effect-image <approved-image>
 node "$SKILL_DIR/scripts/mock-preview-server.mjs" --port 4179 --home-js dist-home/portal.min.js --login-js dist-login/login.min.js
 node "$SKILL_DIR/scripts/task-pack.mjs" --mode verify --root . --home-js dist-home/portal.min.js --login-js dist-login/login.min.js
@@ -52,11 +55,11 @@ node "$SKILL_DIR/scripts/task-pack.mjs" --mode verify --root . --home-js dist-ho
 
 ## Implementation Order
 
-1. Collect UI style, confirm homepage elements, generate/confirm design image.
+1. Collect UI style, confirm homepage elements, generate/confirm a contract-compliant design image.
 2. Detect scripts, entrypoints, and artifact format.
-3. Create missing page entries, contract helpers, contract tests, and mock preview.
-4. Implement 登录页, interaction states, 首页 modules, and logged-in 我的信件 secondary view.
-5. Polish responsive behavior, build two artifacts, run contract lint, and smoke-test mock preview.
+3. Create `design-fidelity.map.md`, missing page entries, contract helpers, contract tests, and mock preview.
+4. Implement 登录页, interaction states, 首页 modules, and logged-in 我的信件 secondary view one-to-one against the design.
+5. Screenshot-compare preview pages against the design, polish responsive behavior, build two artifacts, run contract lint, and smoke-test mock preview.
 
 ## Script Map
 
@@ -64,6 +67,7 @@ node "$SKILL_DIR/scripts/task-pack.mjs" --mode verify --root . --home-js dist-ho
 - `task-pack.mjs`: compact context, numbered task pack, and verification wrapper.
 - `ui-style-intake.mjs`: style/default intake, homepage-gated image prompt, visual gate fragment.
 - `home-elements-dialog.mjs`: homepage business-element questions, timeout defaults, answer fragment.
+- `design-fidelity-brief.mjs`: mandatory design decomposition and screenshot comparison gate.
 - `detect-build-artifacts.mjs`: build/artifact inference from package and bundler config.
 - `mock-preview-server.mjs`: local mock APIs, host globals, login/home previews, fixed jump pages.
 - `contract-lint.mjs`: scans generated source/artifacts for globals, endpoints, jumps, payload markers, and production purity.

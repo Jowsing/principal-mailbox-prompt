@@ -85,6 +85,7 @@ ${homeFragment()}
 - 询问 UI 风格：${nodeCommand('ui-style-intake.mjs')} --mode questions
 - 询问首页元素：${nodeCommand('home-elements-dialog.mjs')} --mode questions
 - 首页元素敲定后生成设计稿提示词：${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json
+- 生成设计还原门禁：${nodeCommand('design-fidelity-brief.mjs')} --mode brief --style-file ui-style.brief.md --answers homepage.answers.json --effect-image <approved-image>
 - 生成完整 prompt：${nodeCommand('frontend-prompt-kit.mjs')} --mode prompt --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json
 - 生成步骤：${nodeCommand('frontend-prompt-kit.mjs')} --mode steps --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json
 - 生成文件清单：${nodeCommand('frontend-prompt-kit.mjs')} --mode files --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json
@@ -94,7 +95,8 @@ ${homeFragment()}
 
 低智能模型规则：
 - 业务实现前必须先拿到 UI 风格、首页元素答案、以及基于这些元素生成并确认的设计稿；缺少时先询问，5 分钟无应答则使用脚本默认值继续。
-- 设计稿必须由首页元素驱动，关闭元素不能出现，不允许自由发挥新增模块；代码必须按确认设计稿实现。
+- 设计稿必须由首页元素和技能合同驱动，关闭元素不能出现，不允许自由发挥新增模块；设计稿缺元素或乱加模块时必须重生成。
+- 代码前必须生成 design-fidelity.map.md；代码后必须截图对照设计稿并修正到无明显偏差。
 - 生成预览图/设计稿时也必须遵守整个技能合同：两页入口、首页元素、登录后二级我的信件、交互状态、预览/生产隔离都不能漏。
 - 实现任务必须创建或修改真实前端工程文件。
 - 不要复制长合同进上下文；按 principal-mailbox-task-pack 里的文件逐项执行。
@@ -119,15 +121,16 @@ function writePack() {
     '03-homepage.fragment.md': homeFragment(),
     '04-design-image-prompt.md': stylePrompt(),
     '05-style.fragment.md': styleFragment(),
-    '06-artifacts.md': runScript('detect-build-artifacts.mjs', ['--root', root]),
-    '06-artifacts.json': runScript('detect-build-artifacts.mjs', ['--root', root, '--json']),
-    '07-prompt.md': promptKit('prompt'),
-    '08-steps.md': promptKit('steps'),
-    '09-files.md': promptKit('files'),
-    '10-business.md': promptKit('business'),
-    '11-artifacts.md': promptKit('artifacts'),
-    '12-checklist.md': promptKit('checklist'),
-    '13-commands.md': renderCommands()
+    '06-design-fidelity.md': designFidelityBrief(),
+    '07-artifacts.md': runScript('detect-build-artifacts.mjs', ['--root', root]),
+    '07-artifacts.json': runScript('detect-build-artifacts.mjs', ['--root', root, '--json']),
+    '08-prompt.md': promptKit('prompt'),
+    '09-steps.md': promptKit('steps'),
+    '10-files.md': promptKit('files'),
+    '11-business.md': promptKit('business'),
+    '12-artifacts.md': promptKit('artifacts'),
+    '13-checklist.md': promptKit('checklist'),
+    '14-commands.md': renderCommands()
   }
 
   for (const [fileName, content] of Object.entries(files)) {
@@ -160,19 +163,21 @@ function renderReadme() {
 3. \`03-homepage.fragment.md\`: 可直接贴给实现模型的首页业务配置。
 4. \`04-design-image-prompt.md\`: 基于风格和首页元素生成登录页+首页设计稿/效果图。
 5. \`05-style.fragment.md\`: 已确认风格、首页元素和设计稿对实现模型的约束。
-6. \`06-artifacts.md/json\`: 当前构建产物格式。不要猜 HTML 或 JS，以这里和实际 build 输出为准。
-7. \`07-prompt.md\`: 完整生成提示词。
-8. \`08-steps.md\`: 小步实现清单。
-9. \`09-files.md\`: 必须落地的工程文件。
-10. \`10-business.md\`: 业务逻辑和交互标准。
-11. \`11-artifacts.md\`: 构建产物合同。
-12. \`12-checklist.md\`: 最终验收。
-13. \`13-commands.md\`: 预览、构建、验证命令。
+6. \`06-design-fidelity.md\`: 设计稿拆解、代码前还原清单、代码后截图对照门禁。
+7. \`07-artifacts.md/json\`: 当前构建产物格式。不要猜 HTML 或 JS，以这里和实际 build 输出为准。
+8. \`08-prompt.md\`: 完整生成提示词。
+9. \`09-steps.md\`: 小步实现清单。
+10. \`10-files.md\`: 必须落地的工程文件。
+11. \`11-business.md\`: 业务逻辑和交互标准。
+12. \`12-artifacts.md\`: 构建产物合同。
+13. \`13-checklist.md\`: 最终验收。
+14. \`14-commands.md\`: 预览、构建、验证命令。
 
 硬规则：
 - 先收集 UI 风格描述，再确认首页元素，最后基于元素生成并确认设计稿，再进入业务实现。
 - 实现任务必须创建或修改真实前端工程文件。
-- 设计稿必须由已确认首页元素驱动，不允许自由发挥新增模块；代码必须按设计稿实现。
+- 设计稿必须由已确认首页元素和技能合同驱动，不允许自由发挥新增模块；缺元素或乱加模块就重生成。
+- 代码必须按确认设计稿一比一还原；代码前写 design-fidelity.map.md，代码后截图对比并修正。
 - 样式只来自用户风格输入、首页元素答案和确认后的设计稿；不要把样式细节当业务合同。
 - 接口、全局变量、payload、跳转 URL、交互状态、验证码倒计时和当前产物格式不可漏。`
 }
@@ -190,6 +195,7 @@ ${nodeCommand('task-pack.mjs')} --mode context --root . --answers homepage.answe
 ${nodeCommand('ui-style-intake.mjs')} --mode questions
 ${nodeCommand('home-elements-dialog.mjs')} --mode questions
 ${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json
+${nodeCommand('design-fidelity-brief.mjs')} --mode brief --style-file ui-style.brief.md --answers homepage.answers.json --effect-image <approved-image>
 \`\`\`
 
 业务提示词：
@@ -262,6 +268,14 @@ function styleFragment() {
   if (args.answers) scriptArgs.push('--answers', path.resolve(args.answers))
   if (args['effect-image']) scriptArgs.push('--effect-image', args['effect-image'])
   return runScript('ui-style-intake.mjs', scriptArgs)
+}
+
+function designFidelityBrief() {
+  const scriptArgs = ['--mode', 'brief']
+  if (args['style-file']) scriptArgs.push('--style-file', path.resolve(args['style-file']))
+  if (args.answers) scriptArgs.push('--answers', path.resolve(args.answers))
+  if (args['effect-image']) scriptArgs.push('--effect-image', args['effect-image'])
+  return runScript('design-fidelity-brief.mjs', scriptArgs)
 }
 
 function assertStyleReady() {
