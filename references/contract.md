@@ -4,7 +4,7 @@ Default workflow: use `scripts/frontend-prompt-kit.mjs` to emit compressed promp
 
 Project structure is flexible. Backend APIs, host globals, payload formats, response normalization, and jump URLs are fixed. Default frontend stack is React + Ant Design when the target is empty or the user does not specify a stack; existing projects should keep their current stack unless the user explicitly asks to migrate.
 
-Style details are intentionally not part of this contract. Do not preserve or require current colors, images, spacing, radius, shadows, typography, or CSS values. Business logic must be detailed. Before generating or implementing the project, collect a user UI style description, generate one effect image for 登录页 + 首页, and get user confirmation. That confirmed visual input drives visual direction only; it never overrides the business contract.
+Style details are intentionally not part of this contract. Do not preserve or require current colors, images, spacing, radius, shadows, typography, or CSS values. Business logic must be detailed. Before generating or implementing the project, collect a user UI style description, enrich sparse input with professional school-portal structure, school identity cues, refined visual quality, and broad inspiration from strong university homepages worldwide, then generate one effect image for 登录页 + 首页 preferably with imagegen2 and get user confirmation. Do not copy a single university template; for different schools, keep visual template similarity below 50% by varying layout framework, hero composition, module order, color system, campus symbols, and component treatment. That confirmed visual input drives visual direction only; it never overrides the business contract.
 
 ## Default Frontend Stack
 
@@ -20,8 +20,8 @@ Prefer scripts over manually carrying long context:
 ```sh
 node .codex/skills/principal-mailbox-prompt/scripts/ui-style-intake.mjs --mode questions
 node .codex/skills/principal-mailbox-prompt/scripts/ui-style-intake.mjs --mode prompt --style-file ui-style.brief.md
-node .codex/skills/principal-mailbox-prompt/scripts/task-pack.mjs --mode context --root .
-node .codex/skills/principal-mailbox-prompt/scripts/home-elements-dialog.mjs --mode defaults > homepage.answers.json
+node .codex/skills/principal-mailbox-prompt/scripts/home-elements-dialog.mjs --mode questions
+node .codex/skills/principal-mailbox-prompt/scripts/task-pack.mjs --mode context --root . --answers homepage.answers.json --style-file ui-style.brief.md --effect-image <approved-image>
 node .codex/skills/principal-mailbox-prompt/scripts/task-pack.mjs --mode write --root . --out .codex/principal-mailbox-task-pack --answers homepage.answers.json --style-file ui-style.brief.md --effect-image <approved-image>
 ```
 
@@ -37,7 +37,7 @@ Use individual scripts only when a specific output is needed:
 
 - `ui-style-intake.mjs`: ask for UI style, emit effect-image prompt, and materialize the style fragment.
 - `detect-build-artifacts.mjs`: infer package artifact format.
-- `home-elements-dialog.mjs`: ask or materialize homepage business choices.
+- `home-elements-dialog.mjs`: ask homepage business choices and validate confirmed answers.
 - `frontend-prompt-kit.mjs`: emit prompt, steps, files, business rules, artifact rules, checklist, or JSON contract.
 - `mock-preview-server.mjs`: serve mock APIs and preview shells.
 - `contract-lint.mjs`: scan generated projects and artifacts.
@@ -349,7 +349,7 @@ Login and redirect:
 Home page:
 
 - 首页 may internally switch between `home` and `mail` views, but still builds as one 首页 artifact. The `mail` view is the login-only secondary view for 我的信件.
-- Before generating 首页, ask homepage business-element choices with `scripts/home-elements-dialog.mjs --mode questions`; unanswered choices use defaults.
+- Before generating 首页, ask homepage business-element choices with `scripts/home-elements-dialog.mjs --mode questions`; save all choices to `homepage.answers.json` with `"__confirmedByUser": true`; unanswered choices must block generation, not fall back to defaults.
 - Public letters load on mount with `pageNo=1`, `pageSize=20`; category list starts with `全部` and then `letterTypeList`; category change resets to page 1.
 - PC public-letter keyword search uses 300ms debounce and enter search; mobile may use category-only unless user selects mobile search.
 - Public-letter list uses request-sequence/race guard. Reset replaces list; load-more appends; `hasMore` compares current count with total.
@@ -375,7 +375,7 @@ Caching and concurrency:
 
 ## Implementation Workflow
 
-1. Visual preflight: ask for UI style description, generate one 登录页 + 首页 effect image, and get user confirmation. Stop before implementation if either is missing.
+1. Visual preflight: ask for UI style description, supplement missing design detail with a professional school-facing portal framework, school identity cues, refined/beautiful UI quality, and worldwide university-homepage inspiration; generate one 登录页 + 首页 effect image with imagegen2 when available; ensure different schools do not share templates above 50% similarity; get user confirmation. Stop before implementation if either is missing.
 2. Intake: decide prompt/spec vs actual implementation; confirm stack, PC/mobile scope, internal pages vs fixed jumps, backend vs mocks.
 3. Discover: read manifest, lockfile, scripts, bundler config, routing, API wrapper, deploy docs; infer actual package artifact format before coding.
 4. Layout source: confirmed effect image, login/home Web Component entries, route/state, API contract, host globals, models, normalization, PC/mobile variants, UI components, styles, mocks, tests.
@@ -432,18 +432,18 @@ Preview requirements:
 
 ## Style Boundary
 
-No current-project concrete style details are part of this skill. New project visuals must be supplied by the user's UI style description and a confirmed effect image generated before implementation. The effect image is a visual reference, not a source of business logic.
+No current-project concrete style details are part of this skill. New project visuals must be supplied by the user's UI style description, AI-supplemented professional school-portal design direction, worldwide university-homepage inspiration, and a confirmed effect image generated before implementation. The effect image is a visual reference, not a source of business logic. Do not copy a single university homepage; different schools must receive meaningfully different templates with similarity below 50%.
 
 ## Copy-Paste Prompt Skeleton
 
 ```md
 请生成一个“校长信箱”前端项目。默认技术栈为 React + Ant Design：空目录或用户未指定技术栈时必须用 React + Ant Design；已有工程遵循现有技术栈，已有 React 工程默认使用 Ant Design UI 组件。项目结构可以自行组织，但必须完整复用既有后端接口、宿主全局变量、payload 和跳转地址。
 
-视觉前置：开始实现前，必须先让用户输入一段 UI 风格描述；然后基于该描述生成一张同时覆盖登录页和首页的效果图；效果图经用户确认后才进入工程实现。缺少风格描述或确认后的效果图时，不得创建工程文件、业务页面、mock 或发布产物。效果图只控制视觉方向，不覆盖接口、全局变量、payload、跳转、交互和产物合同。
+视觉前置：开始实现前，必须先让用户输入一段 UI 风格描述；模型要尽可能补充专业学校门户框架、学校特色识别和精致优美的视觉细节，并学习吸收世界各地大学首页的成熟信息架构和视觉组织方式，博采众长、多创新，不复制任何单一高校模板；然后优先用 imagegen2 基于增强后的描述生成一张同时覆盖登录页和首页的效果图；给不同学校出图时模板相似度不得高于 50%，至少在首页框架、主视觉构图、模块顺序、色彩系统、校园符号、组件处理六项中拉开差异。效果图经用户确认后才进入工程实现。缺少风格描述或确认后的效果图时，不得创建工程文件、业务页面、mock 或发布产物。效果图只控制视觉方向，不覆盖接口、全局变量、payload、跳转、交互和产物合同。
 
 交付强制要求：如果任务是生成或实现前端项目，必须创建/修改真实工程文件，不允许只输出提示词、说明文档、计划、伪代码或孤立代码片段。空目录必须初始化可运行 React + Ant Design 前端工程；已有工程必须融入现有技术栈和目录，若已有工程是 React 则默认使用 Ant Design。最终回复必须列出实际文件路径、启动命令、mock 预览命令、生产构建命令、验证结果、登录页产物路径和首页产物路径。只有用户明确要求“只生成提示词/文档/规范”时，才允许文本交付。
 
-样式边界：不要把当前项目的颜色、图片、间距、圆角、阴影、字体或 CSS 数值写入合同。新项目样式只来自用户风格描述和确认后的效果图；本任务要求业务逻辑完整。
+样式边界：不要把当前项目的颜色、图片、间距、圆角、阴影、字体或 CSS 数值写入合同。新项目样式来自用户风格描述、AI 补充的学校门户专业化设计方向、全球高校首页优秀模式的综合吸收和确认后的效果图；本任务要求业务逻辑完整，不允许固化单一模板。
 
 全局变量：window.contextPath、window.userId、window.userName、window.logoPath。所有相对接口和页面地址必须经过 buildPortalUrl(path) 拼接 window.contextPath；登录态使用 window.userId；用户名使用 window.userName || '用户'；logo 使用 buildPortalUrl(window.logoPath || '')。
 
@@ -459,11 +459,11 @@ No current-project concrete style details are part of this skill. New project vi
 
 页面与状态：状态 reviewed/evaluated 为已回复，draft 为草稿，to_review/to_confirm/suspend/xf_doing/xf_done 为处理中。默认进度：信件提交、信件分派、信件回复、信件评价。
 
-业务细节：登录 redirect 兼容 redirect/redirectUrl/redirectURI/redirect_uri；手机号校验 /^1\d{10}$/；验证码发送中禁用按钮，发送成功才启动 60 秒倒计时，倒计时显示 `{n}s后重发`，失败不倒计时并展示错误；登录 submitUrl 只允许覆盖登录路径；登录失败保留输入并反馈错误，登录成功优先把接口响应 `data` 当作重定向链接跳转，`data` 为空时再兼容 redirectUrl/redirectURI/url/location/targetUrl。首页生成前先用 scripts/home-elements-dialog.mjs --mode questions 询问业务元素，不问样式。首页内部必须有 home/mail 视图能力；我的信件列表必须是登录后展示的首页二级视图，不是独立打包页；未登录不得请求或渲染我的信件列表，只能跳登录并带当前地址 view=mail redirect；已登录进入 mail 视图后才请求 startByMeList。公开信件未登录跳登录 redirect，已登录打开详情后调用 read 并本地阅读量 +1。写信前必须 getConfig，有 noticeContent 则确认须知后再跳写信。showPhone=false 隐藏电话入口并关闭抽屉。我的信件筛选 title/status/type；草稿编辑/删除，to_review 撤回，reviewed/evaluated 评价；删除/撤回二次确认；评价维度必填并提交 remark。config/phone/type/evaluate 要缓存，并发复用 Promise；列表请求要有竞态保护。
+业务细节：登录 redirect 兼容 redirect/redirectUrl/redirectURI/redirect_uri；手机号校验 /^1\d{10}$/；验证码发送中禁用按钮，发送成功才启动 60 秒倒计时，倒计时显示 `{n}s后重发`，失败不倒计时并展示错误；登录 submitUrl 只允许覆盖登录路径；登录失败保留输入并反馈错误，登录成功优先把接口响应 `data` 当作重定向链接跳转，`data` 为空时再兼容 redirectUrl/redirectURI/url/location/targetUrl。首页生成前先用 scripts/home-elements-dialog.mjs --mode questions 逐项询问业务元素，不问样式；回答必须保存为 homepage.answers.json，并包含 `"__confirmedByUser": true`；未回答不得自动使用默认值。首页内部必须有 home/mail 视图能力；我的信件列表必须是登录后展示的首页二级视图，不是独立打包页；未登录不得请求或渲染我的信件列表，只能跳登录并带当前地址 view=mail redirect；已登录进入 mail 视图后才请求 startByMeList。公开信件未登录跳登录 redirect，已登录打开详情后调用 read 并本地阅读量 +1。写信前必须 getConfig，有 noticeContent 则确认须知后再跳写信。showPhone=false 隐藏电话入口并关闭抽屉。我的信件筛选 title/status/type；草稿编辑/删除，to_review 撤回，reviewed/evaluated 评价；删除/撤回二次确认；评价维度必填并提交 remark。config/phone/type/evaluate 要缓存，并发复用 Promise；列表请求要有竞态保护。
 
 交互标准：所有异步动作要有 loading/error/success/disabled 状态；字段错误贴近字段反馈，接口/网络错误用统一消息区、toast 或弹窗反馈；错误文案优先后端 message/msg/errorMessage/error/desc，默认“操作失败，请稍后重试”，网络默认“网络异常，请稍后重试”；取消确认不报错；列表要有 loading/empty/error/retry/load-more/no-more；弹窗和抽屉要有 submitting、validation error、api error 和关闭重置。
 
-工程步骤：先完成 UI 风格描述输入、效果图生成和用户确认；发现目标项目和脚本；空目录或未指定技术栈时初始化 React + Ant Design；运行 `scripts/detect-build-artifacts.mjs --root .`；读取 bundler 配置和实际构建输出反推出产物格式；生成或修改工程文件；设计 API 合同层、host globals helper、redirect helper、模型归一化、PC/mobile 页面；实现 dev mock shell，但必须与生产 build 完全隔离；先测合同层再做 UI；逐页完成 loading/empty/error/disabled/confirm/debounce/race guard；PC 和移动端业务流程独立，样式细节不入合同。最低落地文件组：登录页 Web Component entry、首页 Web Component entry、portal contract、request、redirect、normalize、query、mock preview、contract tests/checks；文件名可按技术栈调整但必须有等价文件。
+工程步骤：先完成 UI 风格描述输入、效果图生成和用户确认；再逐项询问首页业务元素并保存带 `"__confirmedByUser": true` 的 homepage.answers.json；发现目标项目和脚本；空目录或未指定技术栈时初始化 React + Ant Design；运行 `scripts/detect-build-artifacts.mjs --root .`；读取 bundler 配置和实际构建输出反推出产物格式；生成或修改工程文件；设计 API 合同层、host globals helper、redirect helper、模型归一化、PC/mobile 页面；实现 dev mock shell，但必须与生产 build 完全隔离；先测合同层再做 UI；逐页完成 loading/empty/error/disabled/confirm/debounce/race guard；PC 和移动端业务流程独立，样式细节不入合同。最低落地文件组：登录页 Web Component entry、首页 Web Component entry、portal contract、request、redirect、normalize、query、mock preview、contract tests/checks；文件名可按技术栈调整但必须有等价文件。
 
 预览步骤：提供本地 mock 预览服务，可使用 scripts/mock-preview-server.mjs --home-js dist-home/portal.min.js --login-js dist-login/login.min.js。服务需提供 /preview/login、/preview/home 和 /preview/mail，固定接口 mock、window.contextPath/userId/userName/logoPath、公开信件、我的信件、服务电话、信件类型、评价维度、showPhone true/false、空列表和各类状态测试数据。mock endpoint 和 payload 必须与生产合同一致，但 mock、预览 shell、测试数据和 dev globals 只能存在于预览环境，生产产物不得依赖或内置。
 

@@ -12,12 +12,18 @@ This skill is optimized for weaker models. Do not rely on memory or paraphrase t
 Before the existing business/project workflow, do this first:
 
 1. Ask the user for a UI style description unless they already supplied one.
-2. Run `node .codex/skills/principal-mailbox-prompt/scripts/ui-style-intake.mjs --mode prompt --style-file <style-file>` or pass `--style "<text>"` to generate an effect-image prompt.
-3. Generate one effect image for 登录页 + 首页 with the available image-generation capability.
-4. Ask the user to confirm or revise the effect image.
-5. Only after the style description and confirmed effect image exist, continue with the Low-Context Protocol below.
+2. After the user answers, enrich the style direction instead of using a sparse description verbatim: supplement a professional school portal framework, school identity cues, refined visual quality, and learn from strong university homepage patterns worldwide without copying any single site.
+3. Run `node .codex/skills/principal-mailbox-prompt/scripts/ui-style-intake.mjs --mode prompt --style-file <style-file>` or pass `--style "<text>"` to generate an effect-image prompt.
+4. Generate one effect image for 登录页 + 首页, preferably with imagegen2. If imagegen2 is unavailable, use the available image-generation capability while preserving the generated prompt.
+5. The effect image must look like a polished school-facing web portal: professional page structure, explicit school characteristics, refined/beautiful UI quality, and high originality. For different schools, generated visual templates must not exceed 50% similarity; vary page framework, hero composition, module order, color system, campus symbols, and component treatment.
+6. Ask the user to confirm or revise the effect image.
+7. Only after the style description and confirmed effect image exist, continue with the Low-Context Protocol below.
 
 Hard stop: do not create frontend files, task packs, business pages, mock preview, or release artifacts before the visual preflight is complete. The effect image controls visual direction only; it cannot override APIs, globals, payloads, jumps, artifacts, or interaction standards.
+
+Script gate: `task-pack --mode context`, `task-pack --mode write`, and `frontend-prompt-kit --mode prompt|steps|files|business|artifacts|all` must stop before emitting business/project instructions unless `--style/--style-file`, `--effect-image`, and `--answers homepage.answers.json` are present.
+
+Homepage gate: after visual confirmation, ask the homepage business-element questions with `home-elements-dialog.mjs --mode questions`. Save every user choice to `homepage.answers.json` with `"__confirmedByUser": true`. Do not auto-generate answers from defaults; defaults are suggestions only.
 
 ## Low-Context Protocol
 
@@ -27,14 +33,14 @@ Hard stop: do not create frontend files, task packs, business pages, mock previe
    - Need image prompt/style fragment:
      `node .codex/skills/principal-mailbox-prompt/scripts/ui-style-intake.mjs --mode prompt --style-file ui-style.brief.md`
    - Lowest-context implementation workflow:
-     `node .codex/skills/principal-mailbox-prompt/scripts/task-pack.mjs --mode context --root .`
+     `node .codex/skills/principal-mailbox-prompt/scripts/task-pack.mjs --mode context --root . --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json`
    - Materialize prompt/steps/files/checklist into numbered files:
-     `node .codex/skills/principal-mailbox-prompt/scripts/task-pack.mjs --mode write --root . --out .codex/principal-mailbox-task-pack --style-file ui-style.brief.md --effect-image <approved-image>`
+     `node .codex/skills/principal-mailbox-prompt/scripts/task-pack.mjs --mode write --root . --out .codex/principal-mailbox-task-pack --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json`
    - First identify package artifacts from the target project, not from page names:
      `node .codex/skills/principal-mailbox-prompt/scripts/detect-build-artifacts.mjs --root .`
-   - Need reusable prompt/spec: run `node .codex/skills/principal-mailbox-prompt/scripts/frontend-prompt-kit.mjs --mode prompt`.
-   - Need actual implementation: run `node .codex/skills/principal-mailbox-prompt/scripts/frontend-prompt-kit.mjs --mode steps` and `--mode files`, then create/edit the frontend project files.
-   - Need homepage element decisions: run `node .codex/skills/principal-mailbox-prompt/scripts/home-elements-dialog.mjs --mode questions`.
+   - Need reusable prompt/spec: after visual and homepage confirmation, run `node .codex/skills/principal-mailbox-prompt/scripts/frontend-prompt-kit.mjs --mode prompt --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json`.
+   - Need actual implementation: after visual and homepage confirmation, run `node .codex/skills/principal-mailbox-prompt/scripts/frontend-prompt-kit.mjs --mode steps --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json` and `--mode files`, then create/edit the frontend project files.
+   - Need homepage element decisions: run `node .codex/skills/principal-mailbox-prompt/scripts/home-elements-dialog.mjs --mode questions`, ask the user, then save `homepage.answers.json` with `"__confirmedByUser": true`.
    - Need QA/release checklist: run `node .codex/skills/principal-mailbox-prompt/scripts/frontend-prompt-kit.mjs --mode checklist`.
 2. For implementation requests, creating files is mandatory:
    - Do not stop at a prompt, plan, checklist, or code snippets.
@@ -54,8 +60,8 @@ Hard stop: do not create frontend files, task packs, business pages, mock previe
 4. Implement in this order for code work:
    - collect UI style description
    - generate and confirm one effect image
+   - ask and confirm homepage business-element choices
    - discover scripts/entrypoints and artifact format
-   - ask homepage element choices with `home-elements-dialog.mjs`
    - create two page entries if missing
    - contract helpers
    - contract tests
@@ -79,7 +85,7 @@ Hard stop: do not create frontend files, task packs, business pages, mock previe
 
 - `scripts/frontend-prompt-kit.mjs`: emits the compressed prompt, atomic implementation passes, checklist, or JSON contract.
 - `scripts/task-pack.mjs`: orchestrates the other scripts into a compact context, numbered task-pack files, or one-command verification.
-- `scripts/ui-style-intake.mjs`: asks for UI style input, emits an effect-image prompt, and produces the visual gate fragment.
+- `scripts/ui-style-intake.mjs`: asks for UI style input, enriches sparse descriptions into a professional school-portal visual direction, emits an imagegen2-first effect-image prompt, and produces the visual gate fragment.
 - `scripts/detect-build-artifacts.mjs`: reads `package.json` and bundler config to determine whether release artifacts are JS components, HTML pages, or another format.
 - `scripts/home-elements-dialog.mjs`: emits or interactively asks homepage business-element choices; it avoids style questions.
 - `scripts/mock-preview-server.mjs`: serves local mock APIs, host globals, login/home previews, and fixed jump pages.
@@ -88,7 +94,7 @@ Hard stop: do not create frontend files, task packs, business pages, mock previe
 ## Acceptance Bar
 
 - Future models can generate the frontend by running scripts without reading `contract.md`.
-- Future models must collect UI style, generate and confirm an effect image, then run the existing project workflow.
+- Future models must collect UI style, enrich it with professional school-portal design details and worldwide university-homepage inspiration, generate and confirm an imagegen2 effect image, then run the existing project workflow.
 - Scripted steps cover context assembly, artifact detection, homepage option materialization, prompt/steps/files/checklist generation, preview, and verification.
 - Implementation requests produce real frontend files, not only plans or prompts.
 - Generated prompt/code defaults to React + Ant Design for new/unspecified projects while preserving existing project stack when required.

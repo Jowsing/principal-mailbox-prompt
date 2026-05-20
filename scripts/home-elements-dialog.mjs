@@ -114,12 +114,13 @@ const questions = [
 if (args.help) {
   console.log(`Usage:
 node home-elements-dialog.mjs --mode questions
-node home-elements-dialog.mjs --mode defaults
+node home-elements-dialog.mjs --mode template
 node home-elements-dialog.mjs --mode fragment
 node home-elements-dialog.mjs --mode fragment --answers homepage.answers.json
 node home-elements-dialog.mjs --mode interactive
 
-The script asks only homepage business-element questions. It intentionally avoids style details.`)
+The script asks only homepage business-element questions. It intentionally avoids style details.
+Fragment mode requires --answers from user decisions; defaults are only suggestions.`)
   process.exit(0)
 }
 
@@ -127,8 +128,11 @@ const mode = args.mode || 'questions'
 
 if (mode === 'questions') {
   console.log(renderQuestions())
+} else if (mode === 'template') {
+  console.log(JSON.stringify(templateAnswers(), null, 2))
 } else if (mode === 'defaults') {
-  console.log(JSON.stringify(defaultAnswers(), null, 2))
+  console.error('defaults mode is disabled. Ask the user and use --mode template only as an empty answer template.')
+  process.exit(2)
 } else if (mode === 'fragment') {
   console.log(renderFragment(loadAnswers()))
 } else if (mode === 'interactive') {
@@ -146,7 +150,8 @@ function renderQuestions() {
 
 使用规则：
 - 只问业务元素和交互开关，不问颜色、图片、间距、字体、圆角、阴影等样式。
-- 用户未回答时使用默认值。
+- 必须让用户逐项确认；括号里的默认值只是推荐选项，不能在未询问用户时自动采用。
+- 回答后保存为 homepage.answers.json，并加入 "__confirmedByUser": true，再用 --answers 传给后续脚本。
 - 回答后按选择生成首页，但接口、全局变量、payload、固定跳转仍不可改。
 
 ${questions
@@ -164,12 +169,20 @@ function defaultAnswers() {
   }, {})
 }
 
+function templateAnswers() {
+  const result = { __confirmedByUser: false }
+  for (const item of questions) result[item.id] = ''
+  return result
+}
+
 function loadAnswers() {
-  const defaults = defaultAnswers()
-  if (!args.answers) return defaults
+  if (!args.answers) {
+    console.error(renderAnswersBlocker())
+    process.exit(2)
+  }
   try {
     const parsed = JSON.parse(readFileSync(args.answers, 'utf8'))
-    return normalizeAnswers({ ...defaults, ...parsed })
+    return normalizeAnswers(parsed)
   } catch (error) {
     console.error(`Failed to read answers file: ${args.answers}`)
     console.error(error.message)
@@ -179,12 +192,42 @@ function loadAnswers() {
 
 function normalizeAnswers(inputAnswers) {
   const result = {}
+  const missing = []
+  const invalid = []
+  if (inputAnswers.__confirmedByUser !== true) {
+    invalid.push('__confirmedByUser must be true after user confirmation')
+  }
   for (const item of questions) {
     const allowed = new Set(item.choices.map(([choice]) => choice))
     const value = inputAnswers[item.id]
-    result[item.id] = allowed.has(value) ? value : item.default
+    if (value === undefined || value === null || value === '') {
+      missing.push(item.id)
+      continue
+    }
+    if (!allowed.has(value)) {
+      invalid.push(`${item.id}=${value}`)
+      continue
+    }
+    result[item.id] = value
+  }
+  if (missing.length || invalid.length) {
+    if (missing.length) console.error(`Missing homepage answers: ${missing.join(', ')}`)
+    if (invalid.length) console.error(`Invalid homepage answers: ${invalid.join(', ')}`)
+    console.error(renderQuestions())
+    process.exit(2)
   }
   return result
+}
+
+function renderAnswersBlocker() {
+  return `首页元素选择未完成，停止生成首页配置。
+
+${renderQuestions()}
+
+下一步：
+1. 逐项询问用户并保存为 homepage.answers.json。
+2. 可以先用 --mode template 生成空答案模板，但必须由用户确认后填完整，并设置 "__confirmedByUser": true。
+3. 确认后运行：node .codex/skills/principal-mailbox-prompt/scripts/home-elements-dialog.mjs --mode fragment --answers homepage.answers.json`
 }
 
 function renderFragment(answers) {
@@ -225,6 +268,7 @@ async function runInteractive() {
     rl.close()
   }
 
+  answers.__confirmedByUser = true
   console.log('\n' + JSON.stringify(answers, null, 2))
   console.log('\n' + renderFragment(answers))
 }

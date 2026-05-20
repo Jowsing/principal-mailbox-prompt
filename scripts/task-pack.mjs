@@ -11,8 +11,8 @@ const mode = args.mode || 'context'
 
 if (args.help) {
   console.log(`Usage:
-node task-pack.mjs --mode context --root .
-node task-pack.mjs --mode write --root . --out .codex/principal-mailbox-task-pack
+node task-pack.mjs --mode context --root . --answers homepage.answers.json --style-file ui-style.brief.md --effect-image ./effect.png
+node task-pack.mjs --mode write --root . --out .codex/principal-mailbox-task-pack --answers homepage.answers.json --style-file ui-style.brief.md --effect-image ./effect.png
 node task-pack.mjs --mode verify --root . --home-js dist-home/portal.min.js --login-js dist-login/login.min.js
 
 Modes:
@@ -21,7 +21,7 @@ Modes:
   verify    Run contract lint and mock preview self-test against generated artifacts.
 
 Options:
-  --answers <file>  Optional homepage answers JSON for fragment generation.
+  --answers <file>  Required homepage answers JSON from user decisions.
   --stack <name>    Optional stack hint passed into prompt generation.
   --mobile <yes|no> Optional mobile flag passed into prompt generation.
   --style <text>    User UI style description.
@@ -55,6 +55,9 @@ try {
 }
 
 function renderContext() {
+  assertVisualReady()
+  assertHomepageReady()
+
   return `校长信箱低上下文任务包
 
 先执行：
@@ -62,9 +65,10 @@ function renderContext() {
 2. 用户给出 UI 风格描述后，生成效果图提示词：${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md
 3. 调用图片生成能力生成登录页+首页效果图，并让用户确认。
 4. ${nodeCommand('detect-build-artifacts.mjs')} --root .
-5. ${nodeCommand('home-elements-dialog.mjs')} --mode defaults > homepage.answers.json
-6. 如用户已选择首页元素，编辑 homepage.answers.json；否则使用默认值。
-7. ${nodeCommand('task-pack.mjs')} --mode write --root . --out .codex/principal-mailbox-task-pack --answers homepage.answers.json --style-file ui-style.brief.md --effect-image <approved-image>
+5. ${nodeCommand('home-elements-dialog.mjs')} --mode questions
+6. 逐项询问用户并保存 homepage.answers.json；不得未询问就使用默认值。
+7. ${nodeCommand('task-pack.mjs')} --mode context --root . --answers homepage.answers.json --style-file ui-style.brief.md --effect-image <approved-image>
+8. ${nodeCommand('task-pack.mjs')} --mode write --root . --out .codex/principal-mailbox-task-pack --answers homepage.answers.json --style-file ui-style.brief.md --effect-image <approved-image>
 
 视觉前置：
 ${styleFragment()}
@@ -78,9 +82,9 @@ ${homeFragment()}
 核心执行命令：
 - 询问 UI 风格：${nodeCommand('ui-style-intake.mjs')} --mode questions
 - 生成效果图提示词：${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md
-- 生成完整 prompt：${nodeCommand('frontend-prompt-kit.mjs')} --mode prompt
-- 生成步骤：${nodeCommand('frontend-prompt-kit.mjs')} --mode steps
-- 生成文件清单：${nodeCommand('frontend-prompt-kit.mjs')} --mode files
+- 生成完整 prompt：${nodeCommand('frontend-prompt-kit.mjs')} --mode prompt --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json
+- 生成步骤：${nodeCommand('frontend-prompt-kit.mjs')} --mode steps --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json
+- 生成文件清单：${nodeCommand('frontend-prompt-kit.mjs')} --mode files --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json
 - 生成验收清单：${nodeCommand('frontend-prompt-kit.mjs')} --mode checklist
 - 预览：${nodeCommand('mock-preview-server.mjs')} --port 4179 --home-js dist-home/portal.min.js --login-js dist-login/login.min.js
 - 验证：${nodeCommand('task-pack.mjs')} --mode verify --root . --home-js dist-home/portal.min.js --login-js dist-login/login.min.js
@@ -96,6 +100,9 @@ ${homeFragment()}
 }
 
 function writePack() {
+  assertVisualReady()
+  assertHomepageReady()
+
   const outDir = path.resolve(args.out || path.join(root, '.codex', 'principal-mailbox-task-pack'))
   mkdirSync(outDir, { recursive: true })
 
@@ -146,7 +153,7 @@ function renderReadme() {
 2. \`02-effect-image-prompt.md\`: 用于生成登录页+首页效果图。
 3. \`03-style.fragment.md\`: 已确认风格和效果图对实现模型的约束。
 4. \`04-artifacts.md/json\`: 当前构建产物格式。不要猜 HTML 或 JS，以这里和实际 build 输出为准。
-5. \`05-homepage.answers.json\`: 首页业务元素选择。用户没有选择时使用默认值。
+5. \`05-homepage.answers.json\`: 首页业务元素选择。必须来自用户逐项确认。
 6. \`06-homepage.fragment.md\`: 可直接贴给实现模型的首页业务配置。
 7. \`07-prompt.md\`: 完整生成提示词。
 8. \`08-steps.md\`: 小步实现清单。
@@ -168,7 +175,7 @@ function renderCommands() {
 
 生成上下文：
 \`\`\`sh
-${nodeCommand('task-pack.mjs')} --mode context --root .
+${nodeCommand('task-pack.mjs')} --mode context --root . --answers homepage.answers.json --style-file ui-style.brief.md --effect-image <approved-image>
 \`\`\`
 
 视觉前置：
@@ -177,9 +184,15 @@ ${nodeCommand('ui-style-intake.mjs')} --mode questions
 ${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md
 \`\`\`
 
+业务提示词：
+\`\`\`sh
+${nodeCommand('frontend-prompt-kit.mjs')} --mode prompt --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json
+${nodeCommand('frontend-prompt-kit.mjs')} --mode steps --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json
+\`\`\`
+
 生成任务包：
 \`\`\`sh
-${nodeCommand('home-elements-dialog.mjs')} --mode defaults > homepage.answers.json
+${nodeCommand('home-elements-dialog.mjs')} --mode questions
 ${nodeCommand('task-pack.mjs')} --mode write --root . --out .codex/principal-mailbox-task-pack --answers homepage.answers.json --style-file ui-style.brief.md --effect-image <approved-image>
 \`\`\`
 
@@ -222,6 +235,7 @@ function promptKit(modeName) {
   if (args.style) scriptArgs.push('--style', args.style)
   if (args['style-file']) scriptArgs.push('--style-file', path.resolve(args['style-file']))
   if (args['effect-image']) scriptArgs.push('--effect-image', args['effect-image'])
+  if (args.answers) scriptArgs.push('--answers', path.resolve(args.answers))
   return runScript('frontend-prompt-kit.mjs', scriptArgs)
 }
 
@@ -240,18 +254,92 @@ function styleFragment() {
   return runScript('ui-style-intake.mjs', scriptArgs)
 }
 
+function assertVisualReady() {
+  if (hasStyleInput() && hasEffectImage()) return
+  const error = new Error(renderVisualBlocker())
+  error.status = 2
+  throw error
+}
+
+function assertHomepageReady() {
+  if (hasHomepageAnswers()) return
+  const error = new Error(renderHomepageBlocker())
+  error.status = 2
+  throw error
+}
+
+function renderHomepageBlocker() {
+  return `首页元素选择未完成，停止生成业务任务包。
+
+${runScript('home-elements-dialog.mjs', ['--mode', 'questions'])}
+
+下一步：
+1. 逐项询问用户，保存为 homepage.answers.json。
+2. 答案文件必须包含 "__confirmedByUser": true；不得跳过询问直接使用默认值，默认值只是推荐选项。
+3. 确认后再运行 task-pack，并传入 --answers homepage.answers.json。`
+}
+
+function hasHomepageAnswers() {
+  if (!args.answers) return false
+  const answersPath = path.resolve(args.answers)
+  if (!existsSync(answersPath)) return false
+  try {
+    runScript('home-elements-dialog.mjs', ['--mode', 'fragment', '--answers', answersPath])
+    return true
+  } catch {
+    return false
+  }
+}
+
+function renderVisualBlocker() {
+  if (!hasStyleInput()) {
+    return `视觉前置未完成，停止生成业务任务包。
+
+${runScript('ui-style-intake.mjs', ['--mode', 'questions'])}
+
+下一步：
+1. 让用户输入 UI 风格描述，并保存到 ui-style.brief.md，或用 --style "<用户描述>"。
+2. 再运行：${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md
+3. 生成登录页+首页效果图并让用户确认。
+4. 确认后再运行 task-pack，并传入 --style-file ui-style.brief.md --effect-image <approved-image>。`
+  }
+
+  return `视觉前置未完成，停止生成业务任务包。
+
+${stylePrompt()}
+
+下一步：
+1. 用上面的提示词生成一张登录页+首页效果图。
+2. 让用户确认或要求重生成。
+3. 确认后再运行 task-pack，并传入 --effect-image <approved-image>。`
+}
+
+function hasStyleInput() {
+  return Boolean(readStyleInput())
+}
+
+function hasEffectImage() {
+  return Boolean(args['effect-image'] || args.image)
+}
+
+function readStyleInput() {
+  if (args.style) return String(args.style).trim()
+  if (args['style-file']) {
+    const filePath = path.resolve(args['style-file'])
+    if (existsSync(filePath)) return readFileSync(filePath, 'utf8').trim()
+  }
+  return ''
+}
+
 function homeFragment() {
   const scriptArgs = ['--mode', 'fragment']
-  if (args.answers) scriptArgs.push('--answers', path.resolve(args.answers))
+  scriptArgs.push('--answers', path.resolve(args.answers))
   return runScript('home-elements-dialog.mjs', scriptArgs)
 }
 
 function answersJson() {
-  const answersPath = args.answers ? path.resolve(args.answers) : ''
-  if (answersPath && existsSync(answersPath)) {
-    return JSON.stringify(JSON.parse(readFileSync(answersPath, 'utf8')), null, 2)
-  }
-  return runScript('home-elements-dialog.mjs', ['--mode', 'defaults'])
+  const answersPath = path.resolve(args.answers)
+  return JSON.stringify(JSON.parse(readFileSync(answersPath, 'utf8')), null, 2)
 }
 
 function runScript(scriptName, scriptArgs) {

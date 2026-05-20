@@ -1,12 +1,15 @@
 #!/usr/bin/env node
+import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const args = parseArgs(process.argv.slice(2))
+const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 
 const contract = {
   visualPreflight:
-    '生成/实现前必须先收集用户 UI 风格描述，再生成并确认一张登录页+首页效果图；缺少任一项时不得开始工程实现。',
+    '生成/实现前必须先收集用户 UI 风格描述，补足专业学校门户框架、学校特色和精致视觉要求，吸收全球高校首页优秀模式并创新差异化，再优先用 imagegen2 生成并确认一张登录页+首页效果图；缺少任一项时不得开始工程实现。',
   pages: [
     '业务产物固定为两个入口：登录页、首页；打包格式按当前 Vite library/component 构建反推',
     '登录页：手机号、短信验证码、60s倒计时、登录、统一认证入口、校验',
@@ -164,11 +167,13 @@ Options:
   --style <text>       User UI style description.
   --style-file <file>  File containing the UI style description.
   --effect-image <ref> Approved effect-image path or URL.
+  --answers <file>     Required homepage answers JSON from user decisions, including __confirmedByUser=true.
 `)
   process.exit(0)
 }
 
 const mode = args.mode || 'prompt'
+const gatedModes = new Set(['prompt', 'steps', 'files', 'business', 'artifacts', 'all'])
 const renderers = {
   prompt: renderPrompt,
   steps: renderSteps,
@@ -185,6 +190,16 @@ if (!renderers[mode]) {
   process.exit(1)
 }
 
+if (gatedModes.has(mode) && !visualReady()) {
+  console.error(renderVisualBlocker())
+  process.exit(2)
+}
+
+if (gatedModes.has(mode) && !homepageReady()) {
+  console.error(renderHomepageBlocker())
+  process.exit(2)
+}
+
 console.log(renderers[mode]())
 
 function renderPrompt() {
@@ -194,6 +209,9 @@ function renderPrompt() {
 
 视觉前置门禁：
 ${renderVisualGate()}
+
+首页元素强制选择：
+${homeFragment()}
 
 交付强制要求：
 1. 如果任务是生成或实现前端项目，必须创建/修改真实工程文件，不允许只输出提示词、方案、清单或代码片段。
@@ -225,8 +243,10 @@ ${contract.productionPurity.map((item) => `- ${item}`).join('\n')}
 
 样式边界：
 1. 本提示词只固化业务逻辑，不固化当前项目颜色、间距、图片、圆角、阴影、字体等样式细节。
-2. 新项目的视觉方向来自用户 UI 风格描述和已确认效果图。
-3. 生成工程时按已确认效果图做基础可用布局，但不要把效果图里的随机文案、虚构接口、额外页面或额外模块当成业务需求。
+2. 新项目的视觉方向来自用户 UI 风格描述、AI 补充的专业学校门户设计方向、全球高校首页优秀模式的综合吸收和已确认效果图。
+3. 生成工程时按已确认效果图做基础可用布局；网页整体框架必须专业化，风格必须体现学校特色，界面必须精致优美。
+4. 不得复制任何单一高校首页模板；给不同学校出图时模板相似度不得高于 50%，至少在首页框架、主视觉构图、模块顺序、色彩系统、校园符号、组件处理六项中拉开差异。
+5. 不要把效果图里的随机文案、虚构接口、额外页面或额外模块当成业务需求。
 
 全局变量：
 ${contract.globals.map((item) => `- ${item}`).join('\n')}
@@ -264,10 +284,10 @@ ${interactionRules.map((item) => `- ${item}`).join('\n')}
 
 工程执行顺序：
 1. 先完成视觉前置：询问 UI 风格描述，生成登录页+首页效果图，并取得用户确认。
-2. 生成低上下文任务包：node .codex/skills/principal-mailbox-prompt/scripts/task-pack.mjs --mode write --root . --out .codex/principal-mailbox-task-pack --style-file ui-style.brief.md --effect-image <approved-image>
-3. 再发现目标项目脚本、路由、入口、构建方式、样式系统；空目录或未指定栈时按 React + Ant Design 初始化。
-4. 运行构建产物探测脚本：${contract.artifacts.detectCommand}
-5. 运行首页元素对话脚本，先让用户确认首页模块开关：node .codex/skills/principal-mailbox-prompt/scripts/home-elements-dialog.mjs --mode questions
+2. 运行首页元素对话脚本，逐项让用户确认首页模块开关：node .codex/skills/principal-mailbox-prompt/scripts/home-elements-dialog.mjs --mode questions；确认后保存 homepage.answers.json，并用 --answers 传给后续脚本。
+3. 生成低上下文任务包：node .codex/skills/principal-mailbox-prompt/scripts/task-pack.mjs --mode write --root . --out .codex/principal-mailbox-task-pack --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json
+4. 再发现目标项目脚本、路由、入口、构建方式、样式系统；空目录或未指定栈时按 React + Ant Design 初始化。
+5. 运行构建产物探测脚本：${contract.artifacts.detectCommand}
 6. 生成或修改工程文件；最少要有登录页入口、首页入口、合同层、请求层、归一化层、query 转换、mock/预览、测试或检查脚本。
 7. 先写合同层：buildPortalUrl、hasLoggedInUser、requestJson、response normalize、query conversion、endpoint/jump constants。
 8. 给合同层补最小测试，再做 UI。
@@ -303,12 +323,16 @@ PASS -1 视觉前置门禁
 - 如果用户还没有提供 UI 风格描述，先运行：node .codex/skills/principal-mailbox-prompt/scripts/ui-style-intake.mjs --mode questions
 - 等用户输入风格描述后保存为 ui-style.brief.md，或后续命令直接用 --style。
 - 生成效果图提示词：node .codex/skills/principal-mailbox-prompt/scripts/ui-style-intake.mjs --mode prompt --style-file ui-style.brief.md
-- 调用图片生成能力生成一张登录页 + 首页效果图。
+- 优先调用 imagegen2 生成一张登录页 + 首页效果图；如果环境没有 imagegen2，使用可用图像生成能力，但必须保留增强后的学校门户设计提示词。
+- 效果图必须综合吸收世界大学首页优秀模式并创新，不得复制单一模板；不同学校方案相似度不得高于 50%。
 - 让用户确认效果图；用户要求调整时先重新生成效果图。
 - 没有风格描述和已确认效果图时，停止，不要进入 PASS 0。
 
 PASS 0 输入冻结
-- 优先生成任务包：node .codex/skills/principal-mailbox-prompt/scripts/task-pack.mjs --mode write --root . --out .codex/principal-mailbox-task-pack --style-file ui-style.brief.md --effect-image <approved-image>
+- 运行首页元素对话脚本，向用户确认首页模块：node .codex/skills/principal-mailbox-prompt/scripts/home-elements-dialog.mjs --mode questions
+- 用户逐项确认后保存 homepage.answers.json；没有 --answers 时停止，不要用默认值继续。
+- 不在首页元素对话中询问颜色、间距、图片等样式细节；样式只使用 PASS -1 的风格描述和效果图。
+- 优先生成任务包：node .codex/skills/principal-mailbox-prompt/scripts/task-pack.mjs --mode write --root . --out .codex/principal-mailbox-task-pack --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json
 - 后续按 .codex/principal-mailbox-task-pack 的编号文件执行，减少上下文占用。
 - 运行构建产物探测脚本：${contract.artifacts.detectCommand}
 - 写下技术栈、构建命令、登录页入口、首页入口、产物目录和产物格式。
@@ -316,8 +340,6 @@ PASS 0 输入冻结
 - 再读 package.json 和构建配置，确认当前构建模式；本仓库当前是 build:home/build:login 两个 IIFE Web Component JS 产物。
 - 如果不存在两页组件入口，先创建登录页和首页 Web Component entry。
 - 标记固定合同：全局变量、接口路径、payload、跳转 URL 不允许改。
-- 运行首页元素对话脚本，向用户确认首页模块：node .codex/skills/principal-mailbox-prompt/scripts/home-elements-dialog.mjs --mode questions
-- 不在首页元素对话中询问颜色、间距、图片等样式细节；样式只使用 PASS -1 的风格描述和效果图。
 
 PASS 0.5 工程文件落点
 - 空目录：初始化可运行前端工程文件，例如 package.json、index.html、src 入口、构建配置。
@@ -442,10 +464,15 @@ ${interactionRules.map((item, index) => `${index + 1}. ${item}`).join('\n')}
 首页元素对话：
 - 生成首页前先运行：node .codex/skills/principal-mailbox-prompt/scripts/home-elements-dialog.mjs --mode questions
 - 只询问业务模块和交互开关，不询问样式。
-- 用户未回答时使用脚本默认值。
+- 必须逐项询问用户并用 --answers 传入回答文件；未回答时停止，不得自动使用默认值。
+
+已确认首页配置：
+${homeFragment()}
 
 视觉前置：
 - 业务逻辑之前先完成 UI 风格描述输入和效果图确认。
+- AI 必须补足专业网站整体框架、学校特色识别和精致优美的视觉要求，并优先用 imagegen2 出效果图。
+- AI 必须学习吸收世界各地大学首页的成熟信息架构，博采众长、多创新；不同学校出图模板相似度不得高于 50%。
 - 效果图只影响视觉方向，不影响上述业务/API/交互合同。`
 }
 
@@ -494,7 +521,9 @@ ${contract.productionPurity.map((item) => `- ${item}`).join('\n')}
 function renderChecklist() {
   return `验收清单：
 - [ ] 工程实现前已收集用户 UI 风格描述。
-- [ ] 已生成一张登录页 + 首页效果图，并经用户确认或明确接受。
+- [ ] 已在用户描述基础上补足专业学校门户框架、学校特色和精致优美视觉要求。
+- [ ] 已吸收世界大学首页优秀模式并创新差异化；不同学校效果图模板相似度不高于 50%。
+- [ ] 已优先用 imagegen2 生成一张登录页 + 首页效果图，并经用户确认或明确接受。
 - [ ] 已创建或修改真实前端工程文件，不是只输出文档/提示词。
 - [ ] 最终回复列出文件路径、启动命令、构建命令、验证结果。
 - [ ] 空目录或未指定技术栈时使用 React + Ant Design；已有 React 工程默认使用 Ant Design UI 组件。
@@ -505,7 +534,7 @@ function renderChecklist() {
 - [ ] mock、测试数据、dev globals、dev proxy 只存在于预览服务/测试脚本/dev-only 文件中，生产入口没有 import。
 - [ ] 首页内含来信选登、我要写信、我的信件登录后二级视图、来信须知、服务电话、评价弹窗。
 - [ ] 未登录点击我的信件只跳登录并带 view=mail redirect，不请求或渲染我的信件列表。
-- [ ] 首页元素已通过 home-elements-dialog.mjs 询问或采用默认业务配置。
+- [ ] 首页元素已通过 home-elements-dialog.mjs 逐项询问，并传入用户确认后的 --answers 文件；没有自动采用默认值。
 - [ ] 没有把颜色、间距、图片、圆角、阴影等当前项目样式细节写成业务合同；新视觉仅来自用户风格描述和确认后的效果图。
 - [ ] 所有固定接口路径逐字一致。
 - [ ] 所有 POST 都 credentials include + JSON headers。
@@ -550,10 +579,68 @@ function renderVisualGate() {
     : '已确认效果图：缺失时必须先根据风格描述生成一张登录页+首页效果图，并让用户确认。'
   return `- ${contract.visualPreflight}
 - ${styleLine}
+- AI 补充设计方向：专业学校门户整体框架、学校特色识别、精致优美页面质感；不得直接照搬过短描述生成简陋页面。
+- 全球高校借鉴约束：吸收优秀大学首页的信息架构和视觉组织方式，但不得复制单一模板；不同学校模板相似度不得高于 50%。
 - ${imageLine}
 - 可运行脚本：node .codex/skills/principal-mailbox-prompt/scripts/ui-style-intake.mjs --mode questions
 - 可生成效果图提示词：node .codex/skills/principal-mailbox-prompt/scripts/ui-style-intake.mjs --mode prompt --style-file ui-style.brief.md
 - 效果图只决定视觉方向；不得覆盖固定业务/API/全局变量/payload/跳转/产物格式/交互状态。`
+}
+
+function renderVisualBlocker() {
+  const style = readStyleInput()
+  if (!style) {
+    return `视觉前置未完成，停止生成业务 prompt。
+
+请先运行：
+node .codex/skills/principal-mailbox-prompt/scripts/ui-style-intake.mjs --mode questions
+
+拿到用户 UI 风格描述后，保存为 ui-style.brief.md 或用 --style 传入，再生成效果图提示词。`
+  }
+
+  return `视觉前置未完成，停止生成业务 prompt。
+
+请先运行：
+node .codex/skills/principal-mailbox-prompt/scripts/ui-style-intake.mjs --mode prompt --style-file ui-style.brief.md
+
+生成登录页+首页效果图并让用户确认后，再用 --effect-image <approved-image> 继续。`
+}
+
+function visualReady() {
+  return Boolean(readStyleInput() && (args['effect-image'] || args.image))
+}
+
+function homepageReady() {
+  if (!args.answers) return false
+  try {
+    homeFragment()
+    return true
+  } catch {
+    return false
+  }
+}
+
+function renderHomepageBlocker() {
+  return `首页元素选择未完成，停止生成业务 prompt。
+
+${runScript('home-elements-dialog.mjs', ['--mode', 'questions'])}
+
+下一步：
+1. 逐项询问用户，保存为 homepage.answers.json。
+2. 答案文件必须包含 "__confirmedByUser": true；不得跳过询问直接使用默认值，默认值只是推荐选项。
+3. 确认后再运行 frontend-prompt-kit，并传入 --answers homepage.answers.json。`
+}
+
+function homeFragment() {
+  return runScript('home-elements-dialog.mjs', ['--mode', 'fragment', '--answers', path.resolve(args.answers)])
+}
+
+function runScript(scriptName, scriptArgs) {
+  const scriptPath = path.join(scriptDir, scriptName)
+  return execFileSync(process.execPath, [scriptPath, ...scriptArgs], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe']
+  }).trim()
 }
 
 function readStyleInput() {
