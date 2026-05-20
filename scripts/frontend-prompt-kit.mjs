@@ -9,7 +9,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 
 const contract = {
   visualPreflight:
-    '生成/实现前必须先收集用户 UI 风格描述，再逐项敲定首页元素，然后基于“风格+已确认元素”补足专业学校门户框架、学校特色和精致视觉要求，吸收全球高校首页优秀模式并创新差异化，最后优先用 imagegen2 生成并确认一张登录页+首页设计稿/效果图；缺少任一项时不得开始工程实现。',
+    '生成/实现前必须先收集用户 UI 风格描述，再逐项敲定首页元素，然后基于“风格+已确认元素”和整个技能合同补足专业学校门户框架、学校特色和精致视觉要求，吸收全球高校首页优秀模式并创新差异化，最后优先用 imagegen2 生成并确认一张登录页+首页设计稿/效果图；缺少任一项时不得开始工程实现。',
   pages: [
     '业务产物固定为两个入口：登录页、首页；打包格式按当前 Vite library/component 构建反推',
     '登录页：手机号、短信验证码、60s倒计时、登录、统一认证入口、校验',
@@ -340,6 +340,7 @@ PASS 0 输入冻结
 - 首页元素敲定后生成设计稿提示词：${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json
 - 优先调用 imagegen2 生成一张登录页 + 首页设计稿/效果图；如果环境没有 imagegen2，使用可用图像生成能力，但必须保留增强后的学校门户设计提示词。
 - 设计稿必须严格使用 homepage.answers.json 中已确认的元素：开启元素必须呈现，关闭元素不得出现，不允许自由发挥新增业务模块。
+- 预览图/设计稿必须严格遵守整个技能合同：两页入口、首页元素答案、我的信件登录后二级视图、React + Ant Design 默认组件模型、错误/loading/disabled/验证码倒计时状态、预览/生产隔离。
 - 设计稿必须综合吸收世界大学首页优秀模式并创新，不得复制单一模板；不同学校方案相似度不得高于 50%。
 - 让用户确认设计稿；用户要求调整时先重新生成设计稿。
 - 没有已确认首页元素和已确认设计稿时，停止，不要生成任务包或工程文件。
@@ -486,6 +487,7 @@ ${homeFragment()}
 - AI 必须补足专业网站整体框架、学校特色识别和精致优美的视觉要求，并优先用 imagegen2 出设计稿/效果图。
 - AI 必须学习吸收世界各地大学首页的成熟信息架构，博采众长、多创新；不同学校出图模板相似度不得高于 50%。
 - 设计稿必须只使用已确认首页元素，不允许自由发挥新增模块；代码必须按确认设计稿实现。
+- 生成预览图时必须遵守整个技能合同，不能只按视觉风格出图。
 - 设计稿只影响视觉方向和页面落位，不影响上述业务/API/交互合同。`
 }
 
@@ -539,6 +541,7 @@ function renderChecklist() {
 - [ ] 已吸收世界大学首页优秀模式并创新差异化；不同学校效果图模板相似度不高于 50%。
 - [ ] 已在首页元素敲定之后，优先用 imagegen2 生成一张登录页 + 首页设计稿/效果图，并经用户确认或明确接受。
 - [ ] 设计稿严格使用已确认首页元素：开启元素有位置，关闭元素未出现，没有新增未确认业务模块。
+- [ ] 预览图/设计稿严格遵守整个技能合同，没有漏掉两页入口、登录后二级我的信件、错误反馈、验证码倒计时、loading/disabled 和预览/生产隔离约束。
 - [ ] 代码实现按确认设计稿落地页面结构、模块位置、视觉层级和交互状态。
 - [ ] 已创建或修改真实前端工程文件，不是只输出文档/提示词。
 - [ ] 最终回复列出文件路径、启动命令、构建命令、验证结果。
@@ -597,6 +600,7 @@ function renderVisualGate() {
 - 首页元素：必须已通过 home-elements-dialog.mjs 逐项询问并传入 --answers；设计稿只能使用已确认元素。
 - AI 补充设计方向：专业学校门户整体框架、学校特色识别、精致优美页面质感；不得直接照搬过短描述生成简陋页面。
 - 全球高校借鉴约束：吸收优秀大学首页的信息架构和视觉组织方式，但不得复制单一模板；不同学校模板相似度不得高于 50%。
+- 全技能约束：生成预览图/设计稿时必须遵守整个技能合同，不能自由发挥覆盖业务、接口、跳转、交互状态或产物格式。
 - ${imageLine}
 - 可运行脚本：${nodeCommand('ui-style-intake.mjs')} --mode questions
 - 首页元素确认脚本：${nodeCommand('home-elements-dialog.mjs')} --mode questions
@@ -650,7 +654,7 @@ ${runScript('home-elements-dialog.mjs', ['--mode', 'questions'])}
 
 下一步：
 1. 逐项询问用户，保存为 homepage.answers.json。
-2. 答案文件必须包含 "__confirmedByUser": true；不得跳过询问直接使用默认值，默认值只是推荐选项。
+2. 答案文件必须包含 "__confirmedByUser": true；先询问用户，5 分钟无应答时才允许使用 timeout defaults。
 3. 确认后先生成设计稿提示词：${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json。
 4. 设计稿确认后再运行 frontend-prompt-kit，并传入 --answers homepage.answers.json 与 --effect-image <approved-image>。`
 }

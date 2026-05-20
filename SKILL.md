@@ -5,119 +5,69 @@ description: "Script-driven, low-context workflow for generating 校长信箱 fr
 
 # Principal Mailbox Prompt
 
-This skill is optimized for weaker models. Do not rely on memory or paraphrase the contract manually. Use the scripts first, and load the long reference only when editing the contract itself.
+Script-first skill for weaker models. Use scripts instead of paraphrasing the contract. Load `references/contract.md` only when a script is insufficient, a detail is disputed, or the contract itself is being edited.
 
-## Portable Command Convention
+## Always Do
 
-This skill must work outside this repository and outside Codex-specific `.codex` paths.
+- Resolve this skill folder as `SKILL_DIR`; use `node "$SKILL_DIR/scripts/<script>.mjs"` and never hardcode `.codex/skills/...` in generated instructions.
+- Ask required confirmations once, wait up to 5 minutes, then use the script default. Timeout defaults count as confirmed and must record the timeout source.
+- Treat generated projects as task-local. Do not write project decisions back into memory, this skill, `agents/openai.yaml`, `references/contract.md`, or future default prompts.
+- For implementation tasks, create or edit real frontend files. Text-only output is allowed only when the user explicitly asks for a prompt/spec/document.
 
-Before running scripts, set `SKILL_DIR` to this skill folder, or resolve `scripts/...` relative to this `SKILL.md` file:
+## Required Gates
+
+Run these gates in order before any business implementation, task pack, mock preview, or release artifact:
+
+1. **UI style**: ask with `ui-style-intake.mjs --mode questions`; if no answer after 5 minutes, write defaults with `ui-style-intake.mjs --mode default-style > ui-style.brief.md`.
+2. **Homepage elements**: after style and before image generation, ask with `home-elements-dialog.mjs --mode questions`; save `homepage.answers.json` with `"__confirmedByUser": true`, or after timeout run `home-elements-dialog.mjs --mode defaults > homepage.answers.json`.
+3. **Design image**: generate a prompt with `ui-style-intake.mjs --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json`, then create one 登录页+首页 design image, preferably with imagegen2. Ask for confirmation; if no answer after 5 minutes, accept the image.
+
+Design image rules: it must follow the whole skill contract, confirmed homepage elements, 登录页/首页 only, login-only 我的信件 secondary view, React + Ant Design default component model, error/loading/disabled states, SMS countdown, and preview/production separation. Enabled elements must appear; disabled or unconfirmed modules must not. The later code must follow the confirmed design image for structure, module placement, hierarchy, and interaction states.
+
+## Fixed Contract
+
+- Default stack: React + Ant Design for empty/unspecified projects. Existing projects keep their stack unless migration is requested; existing React projects use Ant Design UI components.
+- Flexible: folder structure, routing, styling method, state management, visual details.
+- Fixed: `window` globals, endpoints, methods, payload nesting, response parsing, status mapping, fixed jump URLs, login success `data` redirect, and interaction standards.
+- Packaged business entries: exactly 登录页 and 首页.
+- Artifact format: detect from the target project with `detect-build-artifacts.mjs`; this repo currently builds two IIFE Web Component JS files, `portal.min.js` and `login.min.js`.
+- Preview/production split: preview may use mock server, mock globals, test data, and `/preview/*`; production JS must not contain mock data, preview routes, localhost, `__artifact`, host-global overrides, or preview-server dependency.
+- 我的信件列表: login-only secondary view under 首页. It is not a separate package artifact and must not request or render before login.
+- Style is not contract. Visual direction comes only from user style, confirmed homepage answers, and confirmed design image.
+
+## Commands
 
 ```sh
 SKILL_DIR=/path/to/principal-mailbox-prompt
+node "$SKILL_DIR/scripts/ui-style-intake.mjs" --mode questions
+node "$SKILL_DIR/scripts/home-elements-dialog.mjs" --mode questions
+node "$SKILL_DIR/scripts/ui-style-intake.mjs" --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json
+node "$SKILL_DIR/scripts/detect-build-artifacts.mjs" --root .
+node "$SKILL_DIR/scripts/task-pack.mjs" --mode context --root . --style-file ui-style.brief.md --answers homepage.answers.json --effect-image <approved-image>
+node "$SKILL_DIR/scripts/task-pack.mjs" --mode write --root . --out principal-mailbox-task-pack --style-file ui-style.brief.md --answers homepage.answers.json --effect-image <approved-image>
+node "$SKILL_DIR/scripts/frontend-prompt-kit.mjs" --mode steps --style-file ui-style.brief.md --answers homepage.answers.json --effect-image <approved-image>
+node "$SKILL_DIR/scripts/mock-preview-server.mjs" --port 4179 --home-js dist-home/portal.min.js --login-js dist-login/login.min.js
+node "$SKILL_DIR/scripts/task-pack.mjs" --mode verify --root . --home-js dist-home/portal.min.js --login-js dist-login/login.min.js
 ```
 
-All script examples use `node "$SKILL_DIR/scripts/<script>.mjs"`. Do not hardcode `.codex/skills/principal-mailbox-prompt` in generated instructions.
+## Implementation Order
 
-## Mandatory Visual Preflight
-
-Before the existing business/project workflow, do this first:
-
-1. Ask the user for a UI style description unless they already supplied one.
-2. After the user answers, enrich the style direction instead of using a sparse description verbatim: supplement a professional school portal framework, school identity cues, refined visual quality, and learn from strong university homepage patterns worldwide without copying any single site.
-3. Before generating any design image, ask the homepage business-element questions with `home-elements-dialog.mjs --mode questions`. Save every user choice to `homepage.answers.json` with `"__confirmedByUser": true`.
-4. Run `node "$SKILL_DIR/scripts/ui-style-intake.mjs" --mode prompt --style-file <style-file> --answers homepage.answers.json` or pass `--style "<text>"` to generate a design/effect-image prompt.
-5. Generate one design image for 登录页 + 首页, preferably with imagegen2. If imagegen2 is unavailable, use the available image-generation capability while preserving the generated prompt.
-6. The design image must be driven by the confirmed homepage elements: enabled elements must be represented, disabled elements must not appear, and unconfirmed modules must not be invented.
-7. The design image must look like a polished school-facing web portal: professional page structure, explicit school characteristics, refined/beautiful UI quality, and high originality. For different schools, generated visual templates must not exceed 50% similarity; vary page framework, hero composition, module order, color system, campus symbols, and component treatment.
-8. Ask the user to confirm or revise the design image.
-9. Only after the style description, confirmed homepage elements, and confirmed design image exist, continue with the Low-Context Protocol below.
-
-Hard stop: do not create frontend files, task packs, business pages, mock preview, or release artifacts before the visual preflight is complete. The confirmed design image is the implementation reference for page structure, module placement, visual hierarchy, and interaction states; it cannot override APIs, globals, payloads, jumps, artifacts, or interaction standards.
-
-Script gate: `task-pack --mode context`, `task-pack --mode write`, and `frontend-prompt-kit --mode prompt|steps|files|business|artifacts|all` must stop before emitting business/project instructions unless `--style/--style-file`, `--effect-image`, and `--answers homepage.answers.json` are present.
-
-Homepage gate: after style input and before design generation, ask the homepage business-element questions with `home-elements-dialog.mjs --mode questions`. Save every user choice to `homepage.answers.json` with `"__confirmedByUser": true`. Do not auto-generate answers from defaults; defaults are suggestions only. Design generation must consume this answers file.
-
-## Low-Context Protocol
-
-1. Decide mode:
-   - Need UI style intake first:
-     `node "$SKILL_DIR/scripts/ui-style-intake.mjs" --mode questions`
-   - Need homepage element decisions after style and before design:
-     `node "$SKILL_DIR/scripts/home-elements-dialog.mjs" --mode questions`, ask the user, then save `homepage.answers.json` with `"__confirmedByUser": true`.
-   - Need image prompt/style fragment after homepage confirmation:
-     `node "$SKILL_DIR/scripts/ui-style-intake.mjs" --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json`
-   - Lowest-context implementation workflow:
-     `node "$SKILL_DIR/scripts/task-pack.mjs" --mode context --root . --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json`
-   - Materialize prompt/steps/files/checklist into numbered files:
-     `node "$SKILL_DIR/scripts/task-pack.mjs" --mode write --root . --out principal-mailbox-task-pack --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json`
-   - First identify package artifacts from the target project, not from page names:
-     `node "$SKILL_DIR/scripts/detect-build-artifacts.mjs" --root .`
-   - Need reusable prompt/spec: after style, homepage, and design confirmation, run `node "$SKILL_DIR/scripts/frontend-prompt-kit.mjs" --mode prompt --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json`.
-   - Need actual implementation: after style, homepage, and design confirmation, run `node "$SKILL_DIR/scripts/frontend-prompt-kit.mjs" --mode steps --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json` and `--mode files`, then create/edit the frontend project files.
-   - Need QA/release checklist: run `node "$SKILL_DIR/scripts/frontend-prompt-kit.mjs" --mode checklist`.
-2. For implementation requests, creating files is mandatory:
-   - Do not stop at a prompt, plan, checklist, or code snippets.
-   - Create or edit real frontend engineering files in the target workspace.
-   - Final handoff must list changed file paths, dev/preview command, build command, and verification results.
-   - Only produce text-only output when the user explicitly asks for a prompt/spec/document instead of a project.
-3. Preserve immutable contract exactly:
-   - Default frontend stack: React + Ant Design. If the target directory is empty or the user does not specify a stack, create a React project and use Ant Design as the UI component framework.
-   - Existing projects: follow the existing stack unless the user explicitly asks to migrate; when the existing project is React, use Ant Design for UI components.
-   - Flexible: routing, styling, folder layout, and detailed UI implementation.
-   - Fixed: `window` globals, endpoints, methods, payload nesting, response parsing, status mapping, jump URLs.
-   - Output business entries: exactly 登录页 and 首页.
-   - Package format: infer from current build scripts/config with `detect-build-artifacts.mjs`; in this repo it is two IIFE Web Component JS files, `portal.min.js` and `login.min.js`.
-   - Preview and production are strictly separate. Preview may use mock server, mock globals, test data, and `/preview/*` shells. Production artifacts must be pure JS widgets: no mock data, no preview routes, no localhost URLs, no `__artifact` loader, no overriding host globals, and no dependency on the preview server.
-   - 我的信件列表 must be a login-only secondary view under 首页: visitors see only the entry/login redirect; the list is rendered and requested only after login. It is not a separate packaged artifact.
-   - Style details are not part of this skill; do not preserve current colors, images, spacing, radius, shadows, or CSS values as contract.
-4. Implement in this order for code work:
-   - collect UI style description
-   - ask and confirm homepage business-element choices
-   - generate and confirm one design image based on the confirmed homepage elements
-   - discover scripts/entrypoints and artifact format
-   - create two page entries if missing
-   - contract helpers
-   - contract tests
-   - mock preview
-   - 登录页
-   - interaction states: errors, loading, disabled, SMS countdown
-   - 首页 modules, including logged-in 我的信件 secondary view
-   - responsive polish
-   - build two Web Component JS artifacts
-   - contract lint
-   - mock preview smoke
-5. Use `scripts/mock-preview-server.mjs` for local preview with fixed mock APIs and test data:
-   `node "$SKILL_DIR/scripts/mock-preview-server.mjs" --port 4179 --home-js dist-home/portal.min.js --login-js dist-login/login.min.js`
-6. Use `scripts/contract-lint.mjs` before release:
-   `node "$SKILL_DIR/scripts/contract-lint.mjs" --root . --home-js dist-home/portal.min.js --login-js dist-login/login.min.js`
-   Or use the wrapper:
-   `node "$SKILL_DIR/scripts/task-pack.mjs" --mode verify --root . --home-js dist-home/portal.min.js --login-js dist-login/login.min.js`
-7. Load `references/contract.md` only when the scripts are insufficient, a detail is disputed, or the user asks to update the underlying contract.
+1. Collect UI style, confirm homepage elements, generate/confirm design image.
+2. Detect scripts, entrypoints, and artifact format.
+3. Create missing page entries, contract helpers, contract tests, and mock preview.
+4. Implement 登录页, interaction states, 首页 modules, and logged-in 我的信件 secondary view.
+5. Polish responsive behavior, build two artifacts, run contract lint, and smoke-test mock preview.
 
 ## Script Map
 
-- `scripts/frontend-prompt-kit.mjs`: emits the compressed prompt, atomic implementation passes, checklist, or JSON contract.
-- `scripts/task-pack.mjs`: orchestrates the other scripts into a compact context, numbered task-pack files, or one-command verification.
-- `scripts/ui-style-intake.mjs`: asks for UI style input, requires confirmed homepage answers before design generation, enriches sparse descriptions into a professional school-portal visual direction, emits an imagegen2-first design prompt, and produces the visual gate fragment.
-- `scripts/detect-build-artifacts.mjs`: reads `package.json` and bundler config to determine whether release artifacts are JS components, HTML pages, or another format.
-- `scripts/home-elements-dialog.mjs`: emits or interactively asks homepage business-element choices; it avoids style questions.
-- `scripts/mock-preview-server.mjs`: serves local mock APIs, host globals, login/home previews, and fixed jump pages.
-- `scripts/contract-lint.mjs`: scans a generated project for required globals, endpoints, jumps, payload markers, and optional login/home artifacts.
+- `frontend-prompt-kit.mjs`: compressed prompt, steps, file list, business rules, artifacts, checklist, contract JSON.
+- `task-pack.mjs`: compact context, numbered task pack, and verification wrapper.
+- `ui-style-intake.mjs`: style/default intake, homepage-gated image prompt, visual gate fragment.
+- `home-elements-dialog.mjs`: homepage business-element questions, timeout defaults, answer fragment.
+- `detect-build-artifacts.mjs`: build/artifact inference from package and bundler config.
+- `mock-preview-server.mjs`: local mock APIs, host globals, login/home previews, fixed jump pages.
+- `contract-lint.mjs`: scans generated source/artifacts for globals, endpoints, jumps, payload markers, and production purity.
 
-## Acceptance Bar
+## Handoff Bar
 
-- Future models can generate the frontend by running scripts without reading `contract.md`.
-- Future models must collect UI style, ask and confirm homepage elements, enrich the design with professional school-portal details and worldwide university-homepage inspiration, generate and confirm an imagegen2 design image from the confirmed elements, then run the existing project workflow.
-- Scripted steps cover context assembly, artifact detection, homepage option materialization, prompt/steps/files/checklist generation, preview, and verification.
-- Implementation requests produce real frontend files, not only plans or prompts.
-- Generated prompt/code defaults to React + Ant Design for new/unspecified projects while preserving existing project stack when required.
-- Generated prompt/code states that only APIs/globals/payloads/jumps are fixed; project structure remains flexible.
-- Generated prompt/code keeps business logic detailed and takes visual direction only from the required UI style description, confirmed homepage element answers, and confirmed design image.
-- Generated prompt/code defines interaction standards: field/API/network errors, loading/disabled states, retry, success feedback, and SMS countdown behavior.
-- Generated project builds the current-format two artifacts: 首页 Web Component JS and 登录页 Web Component JS.
-- Artifact paths/formats are confirmed from scripts/config and actual build output, not assumed from page names.
-- Production JS artifacts are pure and environment-agnostic; all preview/mock/test-data wiring is external to the build output.
-- Mock preview works before backend access.
-- Contract lint, available build checks, and smoke tests are part of the handoff.
+Future models must be able to run scripts without reading `contract.md`. A valid implementation handoff lists changed files, preview command, build command, verification results, and keeps production artifacts pure while preserving all fixed business/API/interaction behavior.

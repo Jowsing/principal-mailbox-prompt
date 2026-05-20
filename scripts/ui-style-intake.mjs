@@ -6,7 +6,17 @@ import { fileURLToPath } from 'node:url'
 
 const args = parseArgs(process.argv.slice(2))
 const mode = args.mode || 'questions'
-const style = readStyleInput()
+const DEFAULT_STYLE_BRIEF = `# UI 风格描述
+
+- 整体气质：专业、清爽、精致的学校公共服务门户，面向师生诉求反馈场景。
+- 色彩倾向：以学校品牌色为主；缺失品牌色时采用克制蓝白与少量校园绿色点缀。
+- 布局密度：PC 信息层级清晰、模块网格明确；移动端独立流程、操作路径短。
+- 参考对象：综合吸收世界高校首页的信息架构，不复制单一模板。
+- 禁止项：不要营销海报感、不要廉价渐变堆叠、不要新增未确认业务模块。
+- 学校特色：优先使用用户或宿主提供的校名、校徽、校训、校园建筑；缺失时保留中性学校识别占位。
+- 差异化要求：不同学校模板相似度不得高于 50%。
+- 其他偏好：按 React + Ant Design 可落地组件设计，覆盖错误、loading、disabled、验证码倒计时等状态。`
+const style = readStyleInput() || (args['use-defaults'] ? DEFAULT_STYLE_BRIEF : '')
 const effectImage = args['effect-image'] || args.image || ''
 const target = args.target || '校长信箱登录页和首页'
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
@@ -14,6 +24,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 if (args.help) {
   console.log(`Usage:
 node ui-style-intake.mjs --mode questions
+node ui-style-intake.mjs --mode default-style
 node ui-style-intake.mjs --mode prompt --style "清爽、政务、蓝白..." --answers homepage.answers.json
 node ui-style-intake.mjs --mode fragment --style-file ui-style.brief.md --answers homepage.answers.json --effect-image ./effect.png
 node ui-style-intake.mjs --mode write --out principal-mailbox-style --style-file ui-style.brief.md --answers homepage.answers.json
@@ -22,6 +33,7 @@ node ui-style-intake.mjs --mode assert --style-file ui-style.brief.md --answers 
 Modes:
   questions  Print the required user question.
   template   Print a fillable style brief template.
+  default-style Print the 5-minute-timeout default style brief.
   prompt     Print an image-generation prompt from the style brief and confirmed homepage answers.
   fragment   Print implementation instructions that bind the style brief, homepage answers, and design image.
   write      Write style gate files to --out.
@@ -30,6 +42,7 @@ Modes:
 Options:
   --style <text>           Inline UI style description.
   --style-file <file>      File containing the UI style description.
+  --use-defaults           Use the default style brief when --style/--style-file is missing.
   --answers <file>         Confirmed homepage answers JSON with __confirmedByUser=true.
   --effect-image <path>    Approved design image path or URL.
   --out <dir>              Output dir for --mode write.
@@ -41,6 +54,8 @@ if (mode === 'questions') {
   console.log(renderQuestions())
 } else if (mode === 'template') {
   console.log(renderTemplate())
+} else if (mode === 'default-style') {
+  console.log(DEFAULT_STYLE_BRIEF)
 } else if (mode === 'prompt') {
   if (!style) failWith(renderQuestions())
   if (!homepageReady()) failWith(renderHomepageBlocker())
@@ -70,6 +85,7 @@ function renderQuestions() {
 7. 差异化要求：可选，例如希望更学术、更现代、更国际化、不要和其他学校模板太像。
 
 收到风格描述后，不要立即生成设计稿或效果图；必须先进入首页元素选择。
+最多等待用户 5 分钟；5 分钟无应答时，使用脚本默认风格：专业、清爽、精致的学校公共服务门户。
 先运行 home-elements-dialog.mjs 逐项敲定首页业务元素，并保存 homepage.answers.json。
 首页元素敲定后，才能生成一张 ${target} 的设计稿/效果图，并让用户确认或修改。
 如果用户描述较短，模型必须主动补全专业校园门户设计方向，不得直接用简陋描述生成。
@@ -103,6 +119,16 @@ ${homeFragment()}
 
 AI 必须补充的设计方向：
 ${renderAugmentedStyleBrief(styleText)}
+
+全技能合同约束：
+- 生成预览图/设计稿时必须严格遵守整个 principal-mailbox-prompt 技能，不允许只按视觉风格自由出图。
+- 画面业务入口只能是登录页和首页；不要画独立“我的信件页”“服务电话页”“评价页”等额外产物。
+- 登录页必须覆盖手机号、短信验证码、获取验证码、60s 倒计时、登录、统一认证、字段错误、接口错误、loading/disabled 状态的可视表达。
+- 首页必须按已确认首页元素和技能业务逻辑设计：来信选登、我要写信、来信须知、校园服务电话、评价入口、我的信件登录后二级视图等只按开关出现。
+- 我的信件列表只能表现为登录后的首页二级视图或入口状态；未登录状态只能展示入口/登录引导，不能直接渲染列表。
+- 默认以 React + Ant Design 可落地组件为基准，体现表单、按钮、卡片、标签页、列表、抽屉、弹窗、消息反馈、空态/错误态/加载态。
+- 预览图可以表达 mock 预览所需测试状态，但不得暗示生产产物内置 mock、测试数据、localhost、/preview 或额外业务接口。
+- 固定接口、全局变量、payload、跳转地址、产物格式和交互标准不能被预览图里的随机内容覆盖。
 
 画面要求：
 - 同一张图里同时表现登录页和首页的整体视觉风格；建议左侧为登录页，右侧为首页主界面。
@@ -143,6 +169,7 @@ function renderFragment() {
 ${homeFragment()}
 - AI 补充设计方向：必须补足专业学校门户框架、学校特色识别、精致优美的页面质感，并优先用 imagegen2 生成设计稿/效果图。
 - 全球高校借鉴与差异化：必须综合吸收世界大学首页优秀模式并创新，不复制单一模板；不同学校模板相似度不得高于 50%。
+- 预览图生成约束：必须严格遵守整个技能合同，包括两页入口、首页元素答案、我的信件登录后二级视图、React + Ant Design 默认组件模型、错误/loading/disabled/验证码倒计时状态、预览/生产隔离。
 - 已确认设计稿/效果图：${imageText}
 - 生成/实现工程前必须先完成风格输入、首页元素确认、设计稿生成和设计稿确认；缺任一项时停止业务实现，先补齐输入。
 - 效果图/设计稿是代码实现依据：页面结构、模块位置、视觉层级、交互状态必须按设计稿落地。
@@ -223,8 +250,9 @@ ${runScript('home-elements-dialog.mjs', ['--mode', 'questions'])}
 
 下一步：
 1. 逐项询问用户并保存为 homepage.answers.json。
-2. 答案文件必须包含 "__confirmedByUser": true；不得跳过询问直接使用默认值。
-3. 确认后运行：${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json`
+2. 每个确认问题最多等待 5 分钟；无应答时运行 ${nodeCommand('home-elements-dialog.mjs')} --mode defaults > homepage.answers.json。
+3. 答案文件必须包含 "__confirmedByUser": true；超时默认还要保留 "__defaultedAfterTimeout": true。
+4. 确认后运行：${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json`
 }
 
 function homeFragment() {

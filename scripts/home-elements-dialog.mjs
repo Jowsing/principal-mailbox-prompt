@@ -4,6 +4,7 @@ import { createInterface } from 'node:readline/promises'
 import { stdin as input, stdout as output } from 'node:process'
 
 const args = parseArgs(process.argv.slice(2))
+const defaultTimeoutMs = Number(args['timeout-ms'] || 300000)
 
 const questions = [
   {
@@ -118,9 +119,14 @@ node home-elements-dialog.mjs --mode template
 node home-elements-dialog.mjs --mode fragment
 node home-elements-dialog.mjs --mode fragment --answers homepage.answers.json
 node home-elements-dialog.mjs --mode interactive
+node home-elements-dialog.mjs --mode defaults
 
 The script asks only homepage business-element questions. It intentionally avoids style details.
-Fragment mode requires --answers from user decisions; defaults are only suggestions.`)
+Fragment mode requires --answers from user decisions or timeout defaults.
+If the user does not answer within 5 minutes, use defaults and mark them as timeout defaults.
+
+Options:
+  --timeout-ms <n>  Interactive question timeout. Default: 300000.`)
   process.exit(0)
 }
 
@@ -131,8 +137,7 @@ if (mode === 'questions') {
 } else if (mode === 'template') {
   console.log(JSON.stringify(templateAnswers(), null, 2))
 } else if (mode === 'defaults') {
-  console.error('defaults mode is disabled. Ask the user and use --mode template only as an empty answer template.')
-  process.exit(2)
+  console.log(JSON.stringify(defaultAnswers(), null, 2))
 } else if (mode === 'fragment') {
   console.log(renderFragment(loadAnswers()))
 } else if (mode === 'interactive') {
@@ -150,8 +155,10 @@ function renderQuestions() {
 
 使用规则：
 - 只问业务元素和交互开关，不问颜色、图片、间距、字体、圆角、阴影等样式。
-- 必须让用户逐项确认；括号里的默认值只是推荐选项，不能在未询问用户时自动采用。
+- 必须让用户逐项确认；括号里的默认值是 5 分钟无应答时的兜底值。
+- 每个确认问题最多等待 5 分钟；用户无应答时直接采用默认值并继续，不要无限等待。
 - 回答后保存为 homepage.answers.json，并加入 "__confirmedByUser": true，再用 --answers 传给后续脚本。
+- 如果 5 分钟无应答自动采用默认值，仍保存 homepage.answers.json，并加入 "__confirmedByUser": true、"__defaultedAfterTimeout": true。
 - 回答后按选择生成首页，但接口、全局变量、payload、固定跳转仍不可改。
 
 ${questions
@@ -166,7 +173,12 @@ function defaultAnswers() {
   return questions.reduce((result, item) => {
     result[item.id] = item.default
     return result
-  }, {})
+  }, {
+    __confirmedByUser: true,
+    __defaultedAfterTimeout: true,
+    __confirmationSource: 'timeout-default',
+    __timeoutMs: defaultTimeoutMs
+  })
 }
 
 function templateAnswers() {
@@ -226,8 +238,9 @@ ${renderQuestions()}
 
 下一步：
 1. 逐项询问用户并保存为 homepage.answers.json。
-2. 可以先用 --mode template 生成空答案模板，但必须由用户确认后填完整，并设置 "__confirmedByUser": true。
-3. 确认后运行：${nodeCommand('home-elements-dialog.mjs')} --mode fragment --answers homepage.answers.json`
+2. 每个问题最多等待 5 分钟；无应答时运行 ${nodeCommand('home-elements-dialog.mjs')} --mode defaults > homepage.answers.json。
+3. 用户确认或超时默认后，答案文件都必须包含 "__confirmedByUser": true。
+4. 确认后运行：${nodeCommand('home-elements-dialog.mjs')} --mode fragment --answers homepage.answers.json`
 }
 
 function renderFragment(answers) {
@@ -263,7 +276,7 @@ async function runInteractive() {
       item.choices.forEach(([value, description]) => {
         console.log(`  ${value}${value === item.default ? ' (default)' : ''}: ${description}`)
       })
-      const value = (await rl.question(`选择 [${item.default}]: `)).trim()
+      const value = (await questionWithTimeout(rl, `选择 [${item.default}]，${Math.round(defaultTimeoutMs / 1000)}s 后默认: `, item.default)).trim()
       const allowed = new Set(item.choices.map(([choice]) => choice))
       answers[item.id] = allowed.has(value) ? value : item.default
     }
@@ -280,6 +293,22 @@ function describe(id, value) {
   const item = questions.find((question) => question.id === id)
   const choice = item?.choices.find(([choiceValue]) => choiceValue === value)
   return choice ? `${choice[0]} - ${choice[1]}` : String(value || '')
+}
+
+async function questionWithTimeout(rl, prompt, defaultValue) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), defaultTimeoutMs)
+  try {
+    return await rl.question(prompt, { signal: controller.signal })
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      console.log(`\n超时未答，使用默认值：${defaultValue}`)
+      return defaultValue
+    }
+    throw error
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 function parseArgs(items) {

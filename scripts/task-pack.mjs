@@ -65,9 +65,9 @@ function renderContext() {
 1. ${nodeCommand('ui-style-intake.mjs')} --mode questions
 2. 用户给出 UI 风格描述后，保存 ui-style.brief.md；此时不要生成设计稿。
 3. ${nodeCommand('home-elements-dialog.mjs')} --mode questions
-4. 逐项询问用户并保存 homepage.answers.json；不得未询问就使用默认值。
+4. 逐项询问用户并保存 homepage.answers.json；只能在询问后由用户确认，或 5 分钟无应答时使用 timeout defaults。
 5. 首页元素敲定后，生成设计稿提示词：${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json
-6. 调用图片生成能力生成登录页+首页设计稿/效果图，并让用户确认。
+6. 调用图片生成能力生成登录页+首页设计稿/效果图，并让用户确认；预览图必须严格遵守整个技能合同，不能只按视觉风格自由出图。
 7. ${nodeCommand('task-pack.mjs')} --mode context --root . --answers homepage.answers.json --style-file ui-style.brief.md --effect-image <approved-image>
 8. ${nodeCommand('task-pack.mjs')} --mode write --root . --out principal-mailbox-task-pack --answers homepage.answers.json --style-file ui-style.brief.md --effect-image <approved-image>
 9. ${nodeCommand('detect-build-artifacts.mjs')} --root .
@@ -93,8 +93,9 @@ ${homeFragment()}
 - 验证：${nodeCommand('task-pack.mjs')} --mode verify --root . --home-js dist-home/portal.min.js --login-js dist-login/login.min.js
 
 低智能模型规则：
-- 业务实现前必须先拿到用户 UI 风格描述、用户确认的首页元素、以及基于这些元素生成并确认的设计稿；缺少时停止并询问。
+- 业务实现前必须先拿到 UI 风格、首页元素答案、以及基于这些元素生成并确认的设计稿；缺少时先询问，5 分钟无应答则使用脚本默认值继续。
 - 设计稿必须由首页元素驱动，关闭元素不能出现，不允许自由发挥新增模块；代码必须按确认设计稿实现。
+- 生成预览图/设计稿时也必须遵守整个技能合同：两页入口、首页元素、登录后二级我的信件、交互状态、预览/生产隔离都不能漏。
 - 实现任务必须创建或修改真实前端工程文件。
 - 不要复制长合同进上下文；按 principal-mailbox-task-pack 里的文件逐项执行。
 - 空目录或未指定技术栈时默认 React + Ant Design；已有 React 工程默认使用 Ant Design UI 组件。
@@ -155,7 +156,7 @@ function renderReadme() {
 按文件编号执行：
 
 1. \`01-ui-style-question.md\`: 先问用户 UI 风格描述。
-2. \`02-homepage.answers.json\`: 首页业务元素选择。必须来自用户逐项确认。
+2. \`02-homepage.answers.json\`: 首页业务元素选择。必须先逐项询问；用户确认或 5 分钟超时默认后才能继续。
 3. \`03-homepage.fragment.md\`: 可直接贴给实现模型的首页业务配置。
 4. \`04-design-image-prompt.md\`: 基于风格和首页元素生成登录页+首页设计稿/效果图。
 5. \`05-style.fragment.md\`: 已确认风格、首页元素和设计稿对实现模型的约束。
@@ -291,7 +292,7 @@ ${runScript('home-elements-dialog.mjs', ['--mode', 'questions'])}
 
 下一步：
 1. 逐项询问用户，保存为 homepage.answers.json。
-2. 答案文件必须包含 "__confirmedByUser": true；不得跳过询问直接使用默认值，默认值只是推荐选项。
+2. 答案文件必须包含 "__confirmedByUser": true；先询问用户，5 分钟无应答时才允许使用 timeout defaults。
 3. 确认后先生成设计稿提示词：${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json。
 4. 设计稿确认后再运行 task-pack，并传入 --answers homepage.answers.json 与 --effect-image <approved-image>。`
 }
