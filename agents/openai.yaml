@@ -1,4 +1,4 @@
 interface:
   display_name: "Principal Mailbox Prompt"
   short_description: "Script-driven 校长信箱 two-page frontend generation"
-  default_prompt: "优先运行 task-pack.mjs 生成低上下文任务包，再落地校长信箱前端工程文件；业务逻辑和交互标准要细，首页元素先对话选择；我的信件列表只能作为登录后的首页二级视图展示；预览 mock 与生产纯净 JS 产物必须隔离；样式细节不进入合同。"
+  default_prompt: "先询问 UI 风格描述并生成/确认登录页+首页效果图，再运行 task-pack.mjs 生成低上下文任务包并落地真实前端工程文件；空目录或未指定技术栈默认 React + Ant Design；业务逻辑和交互标准要细，首页元素先对话选择；我的信件列表只能作为登录后的首页二级视图展示；预览 mock 与生产纯净 JS 产物必须隔离；样式细节只来自用户风格输入和效果图，不进入业务合同。"

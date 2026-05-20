@@ -205,7 +205,7 @@ function renderFragment(answers) {
 - 我的信件列表只能在登录后的二级视图展示；未登录不得请求或渲染列表，只能跳登录并带 view=mail redirect。
 - 不要把被关闭的元素做成可见 UI。
 - 被关闭元素对应的固定接口和 helper 可以保留，但不要在首页主动调用。
-- 样式细节不属于本配置，等待用户另给设计或页面风格提示词。`
+- 样式细节不属于本配置；视觉方向使用前置 UI 风格描述和已确认效果图。`
 }
 
 async function runInteractive() {

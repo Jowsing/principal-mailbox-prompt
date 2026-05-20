@@ -1,13 +1,22 @@
 #!/usr/bin/env node
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
 
 const args = parseArgs(process.argv.slice(2))
 
 const contract = {
+  visualPreflight:
+    '生成/实现前必须先收集用户 UI 风格描述，再生成并确认一张登录页+首页效果图；缺少任一项时不得开始工程实现。',
   pages: [
     '业务产物固定为两个入口：登录页、首页；打包格式按当前 Vite library/component 构建反推',
     '登录页：手机号、短信验证码、60s倒计时、登录、统一认证入口、校验',
     '首页：来信选登、我要写信、我的信件登录后二级视图、来信须知、校园服务电话、评价弹窗、详情/编辑/写信固定跳转'
   ],
+  stack: {
+    default: 'React + Ant Design',
+    rule:
+      '空目录或未指定技术栈时必须使用 React + Ant Design；已有工程遵循现有技术栈，若现有工程是 React，则 UI 组件框架默认使用 Ant Design。'
+  },
   artifacts: {
     detectCommand: 'node .codex/skills/principal-mailbox-prompt/scripts/detect-build-artifacts.mjs --root .',
     home: {
@@ -136,7 +145,7 @@ const interactionRules = [
 
 contract.businessRules = businessRules
 contract.interactionRules = interactionRules
-contract.styleBoundary = 'Do not encode current style details; style comes from later design or style prompts.'
+contract.styleBoundary = 'Do not encode current style details; new visual direction comes from the user style description and confirmed effect image.'
 
 if (args.help) {
   console.log(`Usage:
@@ -150,8 +159,11 @@ node frontend-prompt-kit.mjs --mode contract-json
 node frontend-prompt-kit.mjs --mode all
 
 Options:
-  --stack <name>       Optional framework hint, e.g. vue, react, unknown.
+  --stack <name>       Optional framework hint. Default: React + Ant Design.
   --mobile <yes|no>    Whether to require independent mobile variants. Default: yes.
+  --style <text>       User UI style description.
+  --style-file <file>  File containing the UI style description.
+  --effect-image <ref> Approved effect-image path or URL.
 `)
   process.exit(0)
 }
@@ -176,15 +188,23 @@ if (!renderers[mode]) {
 console.log(renderers[mode]())
 
 function renderPrompt() {
-  const stack = args.stack || '自选，优先使用目标项目已有技术栈'
+  const stack = args.stack || contract.stack.default
   const mobile = args.mobile === 'no' ? '只做 PC；如用户后续要求移动端再补' : 'PC 与移动端布局独立，业务/API helper 可共享'
   return `你要生成一个“校长信箱”前端项目。技术栈：${stack}。项目结构可以自行组织，但下列合同不可改。
+
+视觉前置门禁：
+${renderVisualGate()}
 
 交付强制要求：
 1. 如果任务是生成或实现前端项目，必须创建/修改真实工程文件，不允许只输出提示词、方案、清单或代码片段。
 2. 只有当用户明确要求“只生成提示词/文档/规范”时，才允许文本交付。
 3. 最终回复必须列出实际改动文件、启动/预览命令、构建命令、验证结果。
 4. 如果目标目录为空，必须初始化一个可运行前端工程；如果目标目录已有工程，必须按现有技术栈落地到该工程。
+
+技术栈默认规则：
+- ${contract.stack.rule}
+- 新建 React 项目时 UI 组件、表单、弹窗、抽屉、消息反馈、分页、标签页、按钮等默认使用 Ant Design；业务样式可用项目 CSS/CSS Modules/Less 等实现，但不要把样式细节写成业务合同。
+- 用户明确指定其他技术栈时，仍必须完整保留本合同的接口、全局变量、payload、跳转和交互标准。
 
 硬性产物：
 1. 业务入口固定为两个：登录页、首页。
@@ -204,9 +224,9 @@ ${contract.productionPurity.map((item) => `- ${item}`).join('\n')}
 5. 不要把我的信件、服务电话、评价等模块打成独立页面产物。
 
 样式边界：
-1. 本提示词只固化业务逻辑，不固化颜色、间距、图片、圆角、阴影、字体等样式细节。
-2. 样式以后由用户提供设计稿或另一个页面风格提示词决定。
-3. 生成工程时可以给出基础可用布局，但不要把当前项目的视觉资产和具体 CSS 数值当成业务合同。
+1. 本提示词只固化业务逻辑，不固化当前项目颜色、间距、图片、圆角、阴影、字体等样式细节。
+2. 新项目的视觉方向来自用户 UI 风格描述和已确认效果图。
+3. 生成工程时按已确认效果图做基础可用布局，但不要把效果图里的随机文案、虚构接口、额外页面或额外模块当成业务需求。
 
 全局变量：
 ${contract.globals.map((item) => `- ${item}`).join('\n')}
@@ -243,20 +263,21 @@ ${interactionRules.map((item) => `- ${item}`).join('\n')}
 - Letter: title/subject；summary 从 pageoffice/content/remark 去 HTML；bizId 从 bizId/id/serialNumber；date 取 createTime/replyTime/updateTime 前 10 位。
 
 工程执行顺序：
-1. 先生成低上下文任务包：node .codex/skills/principal-mailbox-prompt/scripts/task-pack.mjs --mode write --root . --out .codex/principal-mailbox-task-pack
-2. 再发现目标项目脚本、路由、入口、构建方式、样式系统。
-3. 运行构建产物探测脚本：${contract.artifacts.detectCommand}
-4. 运行首页元素对话脚本，先让用户确认首页模块开关：node .codex/skills/principal-mailbox-prompt/scripts/home-elements-dialog.mjs --mode questions
-5. 生成或修改工程文件；最少要有登录页入口、首页入口、合同层、请求层、归一化层、query 转换、mock/预览、测试或检查脚本。
-6. 先写合同层：buildPortalUrl、hasLoggedInUser、requestJson、response normalize、query conversion、endpoint/jump constants。
-7. 给合同层补最小测试，再做 UI。
-8. 实现 dev mock 和本地预览，但 mock、预览 shell、测试数据必须与生产 build 完全隔离。
-9. 实现登录页。
-10. 实现首页外壳、来信选登、登录后二级我的信件、来信须知、服务电话、评价弹窗和固定跳转。
-11. 完成 loading/empty/error/disabled、重复提交保护、搜索防抖、请求竞态保护、删除/撤回确认。
-12. ${mobile}。
-13. 生产构建必须输出两个纯净 Web Component JS 产物：${contract.artifacts.home.fileName} 和 ${contract.artifacts.login.fileName}；不要把验收写成必须有 index.html。
-14. 用 mock 预览服务验证：${contract.preview}
+1. 先完成视觉前置：询问 UI 风格描述，生成登录页+首页效果图，并取得用户确认。
+2. 生成低上下文任务包：node .codex/skills/principal-mailbox-prompt/scripts/task-pack.mjs --mode write --root . --out .codex/principal-mailbox-task-pack --style-file ui-style.brief.md --effect-image <approved-image>
+3. 再发现目标项目脚本、路由、入口、构建方式、样式系统；空目录或未指定栈时按 React + Ant Design 初始化。
+4. 运行构建产物探测脚本：${contract.artifacts.detectCommand}
+5. 运行首页元素对话脚本，先让用户确认首页模块开关：node .codex/skills/principal-mailbox-prompt/scripts/home-elements-dialog.mjs --mode questions
+6. 生成或修改工程文件；最少要有登录页入口、首页入口、合同层、请求层、归一化层、query 转换、mock/预览、测试或检查脚本。
+7. 先写合同层：buildPortalUrl、hasLoggedInUser、requestJson、response normalize、query conversion、endpoint/jump constants。
+8. 给合同层补最小测试，再做 UI。
+9. 实现 dev mock 和本地预览，但 mock、预览 shell、测试数据必须与生产 build 完全隔离。
+10. 实现登录页。
+11. 实现首页外壳、来信选登、登录后二级我的信件、来信须知、服务电话、评价弹窗和固定跳转。
+12. 完成 loading/empty/error/disabled、重复提交保护、搜索防抖、请求竞态保护、删除/撤回确认。
+13. ${mobile}。
+14. 生产构建必须输出两个纯净 Web Component JS 产物：${contract.artifacts.home.fileName} 和 ${contract.artifacts.login.fileName}；不要把验收写成必须有 index.html。
+15. 用 mock 预览服务验证：${contract.preview}
 
 最低文件清单：
 ${requiredFiles.map(([name, description]) => `- ${name}: ${description}`).join('\n')}
@@ -278,16 +299,25 @@ function renderSteps() {
 - 每完成一个 PASS，都检查是否已有真实文件落地。
 - 最终回答必须列出文件路径、启动命令、构建命令、验证命令和结果。
 
+PASS -1 视觉前置门禁
+- 如果用户还没有提供 UI 风格描述，先运行：node .codex/skills/principal-mailbox-prompt/scripts/ui-style-intake.mjs --mode questions
+- 等用户输入风格描述后保存为 ui-style.brief.md，或后续命令直接用 --style。
+- 生成效果图提示词：node .codex/skills/principal-mailbox-prompt/scripts/ui-style-intake.mjs --mode prompt --style-file ui-style.brief.md
+- 调用图片生成能力生成一张登录页 + 首页效果图。
+- 让用户确认效果图；用户要求调整时先重新生成效果图。
+- 没有风格描述和已确认效果图时，停止，不要进入 PASS 0。
+
 PASS 0 输入冻结
-- 优先生成任务包：node .codex/skills/principal-mailbox-prompt/scripts/task-pack.mjs --mode write --root . --out .codex/principal-mailbox-task-pack
+- 优先生成任务包：node .codex/skills/principal-mailbox-prompt/scripts/task-pack.mjs --mode write --root . --out .codex/principal-mailbox-task-pack --style-file ui-style.brief.md --effect-image <approved-image>
 - 后续按 .codex/principal-mailbox-task-pack 的编号文件执行，减少上下文占用。
 - 运行构建产物探测脚本：${contract.artifacts.detectCommand}
 - 写下技术栈、构建命令、登录页入口、首页入口、产物目录和产物格式。
+- 空目录或未指定技术栈时，按 React + Ant Design 生成工程；已有 React 工程默认接入 Ant Design。
 - 再读 package.json 和构建配置，确认当前构建模式；本仓库当前是 build:home/build:login 两个 IIFE Web Component JS 产物。
 - 如果不存在两页组件入口，先创建登录页和首页 Web Component entry。
 - 标记固定合同：全局变量、接口路径、payload、跳转 URL 不允许改。
 - 运行首页元素对话脚本，向用户确认首页模块：node .codex/skills/principal-mailbox-prompt/scripts/home-elements-dialog.mjs --mode questions
-- 不询问颜色、间距、图片等样式细节；这里只确认业务元素和开关。
+- 不在首页元素对话中询问颜色、间距、图片等样式细节；样式只使用 PASS -1 的风格描述和效果图。
 
 PASS 0.5 工程文件落点
 - 空目录：初始化可运行前端工程文件，例如 package.json、index.html、src 入口、构建配置。
@@ -370,12 +400,14 @@ function renderFiles() {
 - 可以按目标技术栈改文件名和扩展名，但必须有等价文件。
 - 空项目必须创建完整可运行工程；已有项目必须融入现有目录。
 - 不允许只交付 Markdown、提示词、计划或代码片段。
+- 工程文件生成前必须已有用户 UI 风格描述和已确认效果图。
 
 最低文件组：
 ${requiredFiles.map(([name, description]) => `- [ ] ${name}: ${description}`).join('\n')}
 
 推荐结构示例：
 - package.json：dev/build/preview/test 或等价脚本。
+- 默认新建工程依赖：react、react-dom、antd，以及构建所需的 Vite/TypeScript 依赖；若目标已有 React 依赖，复用现有版本。
 - 构建配置：支持登录页/首页两个 component/library build mode。
 - src/main.*：应用启动或多页面挂载。
 - src/entry-login-component.*：注册登录页自定义元素。
@@ -410,7 +442,11 @@ ${interactionRules.map((item, index) => `${index + 1}. ${item}`).join('\n')}
 首页元素对话：
 - 生成首页前先运行：node .codex/skills/principal-mailbox-prompt/scripts/home-elements-dialog.mjs --mode questions
 - 只询问业务模块和交互开关，不询问样式。
-- 用户未回答时使用脚本默认值。`
+- 用户未回答时使用脚本默认值。
+
+视觉前置：
+- 业务逻辑之前先完成 UI 风格描述输入和效果图确认。
+- 效果图只影响视觉方向，不影响上述业务/API/交互合同。`
 }
 
 function renderArtifacts() {
@@ -457,8 +493,11 @@ ${contract.productionPurity.map((item) => `- ${item}`).join('\n')}
 
 function renderChecklist() {
   return `验收清单：
+- [ ] 工程实现前已收集用户 UI 风格描述。
+- [ ] 已生成一张登录页 + 首页效果图，并经用户确认或明确接受。
 - [ ] 已创建或修改真实前端工程文件，不是只输出文档/提示词。
 - [ ] 最终回复列出文件路径、启动命令、构建命令、验证结果。
+- [ ] 空目录或未指定技术栈时使用 React + Ant Design；已有 React 工程默认使用 Ant Design UI 组件。
 - [ ] 已运行 detect-build-artifacts.mjs，并按当前构建配置反推出产物格式，不把 Web Component JS 误判为 HTML 页面目录。
 - [ ] 主发布产物为两个单文件 JS：${contract.artifacts.home.fileName}、${contract.artifacts.login.fileName}。
 - [ ] 首页 JS 注册 <${contract.artifacts.home.customElement}>，登录 JS 注册 <${contract.artifacts.login.customElement}>。
@@ -467,7 +506,7 @@ function renderChecklist() {
 - [ ] 首页内含来信选登、我要写信、我的信件登录后二级视图、来信须知、服务电话、评价弹窗。
 - [ ] 未登录点击我的信件只跳登录并带 view=mail redirect，不请求或渲染我的信件列表。
 - [ ] 首页元素已通过 home-elements-dialog.mjs 询问或采用默认业务配置。
-- [ ] 没有把颜色、间距、图片、圆角、阴影等当前项目样式细节写成业务合同。
+- [ ] 没有把颜色、间距、图片、圆角、阴影等当前项目样式细节写成业务合同；新视觉仅来自用户风格描述和确认后的效果图。
 - [ ] 所有固定接口路径逐字一致。
 - [ ] 所有 POST 都 credentials include + JSON headers。
 - [ ] logout 是 GET，redirect 指向 buildPortalUrl('/plugins/xzxx/portal/index')。
@@ -500,6 +539,33 @@ function renderChecklist() {
 function renderJump(path) {
   if (path.includes('${')) return `buildPortalUrl(\`${path}\`)`
   return `buildPortalUrl('${path}')`
+}
+
+function renderVisualGate() {
+  const style = readStyleInput()
+  const effectImage = args['effect-image'] || args.image || ''
+  const styleLine = style ? `用户 UI 风格描述：${style}` : '用户 UI 风格描述：缺失时必须先询问用户，不能开始工程实现。'
+  const imageLine = effectImage
+    ? `已确认效果图：${effectImage}`
+    : '已确认效果图：缺失时必须先根据风格描述生成一张登录页+首页效果图，并让用户确认。'
+  return `- ${contract.visualPreflight}
+- ${styleLine}
+- ${imageLine}
+- 可运行脚本：node .codex/skills/principal-mailbox-prompt/scripts/ui-style-intake.mjs --mode questions
+- 可生成效果图提示词：node .codex/skills/principal-mailbox-prompt/scripts/ui-style-intake.mjs --mode prompt --style-file ui-style.brief.md
+- 效果图只决定视觉方向；不得覆盖固定业务/API/全局变量/payload/跳转/产物格式/交互状态。`
+}
+
+function readStyleInput() {
+  if (args.style) return String(args.style).trim()
+  if (args['style-file']) {
+    try {
+      return readFileSync(path.resolve(args['style-file']), 'utf8').trim()
+    } catch {
+      return ''
+    }
+  }
+  return ''
 }
 
 function parseArgs(items) {
