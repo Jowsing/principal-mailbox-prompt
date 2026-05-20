@@ -4,7 +4,7 @@ Default workflow: use `scripts/frontend-prompt-kit.mjs` to emit compressed promp
 
 Project structure is flexible. Backend APIs, host globals, payload formats, response normalization, and jump URLs are fixed. Default frontend stack is React + Ant Design when the target is empty or the user does not specify a stack; existing projects should keep their current stack unless the user explicitly asks to migrate.
 
-Style details are intentionally not part of this contract. Do not preserve or require current colors, images, spacing, radius, shadows, typography, or CSS values. Business logic must be detailed. Before generating or implementing the project, collect a user UI style description, enrich sparse input with professional school-portal structure, school identity cues, refined visual quality, and broad inspiration from strong university homepages worldwide, then generate one effect image for 登录页 + 首页 preferably with imagegen2 and get user confirmation. Do not copy a single university template; for different schools, keep visual template similarity below 50% by varying layout framework, hero composition, module order, color system, campus symbols, and component treatment. That confirmed visual input drives visual direction only; it never overrides the business contract.
+Style details are intentionally not part of this contract. Do not preserve or require current colors, images, spacing, radius, shadows, typography, or CSS values. Business logic must be detailed. Before generating or implementing the project, collect a user UI style description, then ask and confirm homepage business elements, then enrich sparse input with professional school-portal structure, school identity cues, refined visual quality, and broad inspiration from strong university homepages worldwide. Only after homepage elements are confirmed, generate one design/effect image for 登录页 + 首页 preferably with imagegen2 and get user confirmation. The design image must be driven by confirmed homepage elements: enabled elements appear, disabled elements do not appear, and unconfirmed modules are not invented. Do not copy a single university template; for different schools, keep visual template similarity below 50% by varying layout framework, hero composition, module order, color system, campus symbols, and component treatment. That confirmed design drives page structure, module placement, visual hierarchy, and interaction-state presentation, but it never overrides the business contract.
 
 ## Default Frontend Stack
 
@@ -18,24 +18,25 @@ Style details are intentionally not part of this contract. Do not preserve or re
 Prefer scripts over manually carrying long context:
 
 ```sh
-node .codex/skills/principal-mailbox-prompt/scripts/ui-style-intake.mjs --mode questions
-node .codex/skills/principal-mailbox-prompt/scripts/ui-style-intake.mjs --mode prompt --style-file ui-style.brief.md
-node .codex/skills/principal-mailbox-prompt/scripts/home-elements-dialog.mjs --mode questions
-node .codex/skills/principal-mailbox-prompt/scripts/task-pack.mjs --mode context --root . --answers homepage.answers.json --style-file ui-style.brief.md --effect-image <approved-image>
-node .codex/skills/principal-mailbox-prompt/scripts/task-pack.mjs --mode write --root . --out .codex/principal-mailbox-task-pack --answers homepage.answers.json --style-file ui-style.brief.md --effect-image <approved-image>
+SKILL_DIR=/path/to/principal-mailbox-prompt
+node "$SKILL_DIR/scripts/ui-style-intake.mjs" --mode questions
+node "$SKILL_DIR/scripts/home-elements-dialog.mjs" --mode questions
+node "$SKILL_DIR/scripts/ui-style-intake.mjs" --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json
+node "$SKILL_DIR/scripts/task-pack.mjs" --mode context --root . --answers homepage.answers.json --style-file ui-style.brief.md --effect-image <approved-image>
+node "$SKILL_DIR/scripts/task-pack.mjs" --mode write --root . --out principal-mailbox-task-pack --answers homepage.answers.json --style-file ui-style.brief.md --effect-image <approved-image>
 ```
 
-Then execute the generated numbered files in `.codex/principal-mailbox-task-pack`.
+Then execute the generated numbered files in `principal-mailbox-task-pack`.
 
 Verification wrapper:
 
 ```sh
-node .codex/skills/principal-mailbox-prompt/scripts/task-pack.mjs --mode verify --root . --home-js dist-home/portal.min.js --login-js dist-login/login.min.js
+node "$SKILL_DIR/scripts/task-pack.mjs" --mode verify --root . --home-js dist-home/portal.min.js --login-js dist-login/login.min.js
 ```
 
 Use individual scripts only when a specific output is needed:
 
-- `ui-style-intake.mjs`: ask for UI style, emit effect-image prompt, and materialize the style fragment.
+- `ui-style-intake.mjs`: ask for UI style, require confirmed homepage answers before design generation, emit design/effect-image prompt, and materialize the style fragment.
 - `detect-build-artifacts.mjs`: infer package artifact format.
 - `home-elements-dialog.mjs`: ask homepage business choices and validate confirmed answers.
 - `frontend-prompt-kit.mjs`: emit prompt, steps, files, business rules, artifact rules, checklist, or JSON contract.
@@ -64,7 +65,7 @@ The business entries are exactly 登录页 and 首页. The package format must b
 First run:
 
 ```sh
-node .codex/skills/principal-mailbox-prompt/scripts/detect-build-artifacts.mjs --root .
+node "$SKILL_DIR/scripts/detect-build-artifacts.mjs" --root .
 ```
 
 Then confirm the script output against the actual production build output.
@@ -375,17 +376,17 @@ Caching and concurrency:
 
 ## Implementation Workflow
 
-1. Visual preflight: ask for UI style description, supplement missing design detail with a professional school-facing portal framework, school identity cues, refined/beautiful UI quality, and worldwide university-homepage inspiration; generate one 登录页 + 首页 effect image with imagegen2 when available; ensure different schools do not share templates above 50% similarity; get user confirmation. Stop before implementation if either is missing.
+1. Visual preflight: ask for UI style description; before any design image, ask and confirm homepage business elements; then supplement missing design detail with a professional school-facing portal framework, school identity cues, refined/beautiful UI quality, and worldwide university-homepage inspiration; generate one 登录页 + 首页 design/effect image with imagegen2 when available and based on the confirmed elements; ensure different schools do not share templates above 50% similarity; get user confirmation. Stop before implementation if style, homepage answers, or confirmed design is missing.
 2. Intake: decide prompt/spec vs actual implementation; confirm stack, PC/mobile scope, internal pages vs fixed jumps, backend vs mocks.
 3. Discover: read manifest, lockfile, scripts, bundler config, routing, API wrapper, deploy docs; infer actual package artifact format before coding.
-4. Layout source: confirmed effect image, login/home Web Component entries, route/state, API contract, host globals, models, normalization, PC/mobile variants, UI components, styles, mocks, tests.
+4. Layout source: confirmed design image, confirmed homepage element answers, login/home Web Component entries, route/state, API contract, host globals, models, normalization, PC/mobile variants, UI components, styles, mocks, tests.
 5. Dev wiring: seed `window` globals only in dev, provide logged-in/out previews, mock fixed endpoints if needed, keep endpoint strings unchanged.
 6. Contract layer: implement helpers, response handling, query conversion, fixed APIs, fixed jumps. Test before UI.
 7. Models: normalize config, phone, type, evaluate dimensions, statuses, actions, progress, public letters, my letters.
 8. Page states: visitor, logged-in, login, homepage, my letters module, notice dialog, phone drawer, evaluate dialog, loading, empty, error, disabled.
 9. Pages: produce exactly two business entries, 登录页 and 首页, packaged in the current repo as two Web Component JS artifacts. Put my letters, notice-before-write, service phone, evaluate, public letters, and fixed jumps inside 首页 modules.
 10. Interactions: debounce search, guard request races, prevent duplicate submits, confirm delete/withdraw, refresh after mutations.
-11. Polish against the confirmed style/effect image only for visuals and usability states; do not encode current project style details as contract.
+11. Polish against the confirmed design image only for visuals and usability states; do not encode current project style details as contract.
 
 ## Local Preview and Mock Data
 
@@ -394,7 +395,7 @@ Generated projects should include a preview path before backend access is ready.
 Use or adapt this skill script:
 
 ```bash
-node .codex/skills/principal-mailbox-prompt/scripts/mock-preview-server.mjs --port 4179 --home-js dist-home/portal.min.js --login-js dist-login/login.min.js
+node "$SKILL_DIR/scripts/mock-preview-server.mjs" --port 4179 --home-js dist-home/portal.min.js --login-js dist-login/login.min.js
 ```
 
 Preview requirements:
@@ -432,18 +433,18 @@ Preview requirements:
 
 ## Style Boundary
 
-No current-project concrete style details are part of this skill. New project visuals must be supplied by the user's UI style description, AI-supplemented professional school-portal design direction, worldwide university-homepage inspiration, and a confirmed effect image generated before implementation. The effect image is a visual reference, not a source of business logic. Do not copy a single university homepage; different schools must receive meaningfully different templates with similarity below 50%.
+No current-project concrete style details are part of this skill. New project visuals must be supplied by the user's UI style description, confirmed homepage element answers, AI-supplemented professional school-portal design direction, worldwide university-homepage inspiration, and a confirmed design image generated before implementation. The design image must be generated after homepage elements are confirmed; it is the implementation reference for page structure, module placement, visual hierarchy, and interaction states, but not a source of business logic. Do not copy a single university homepage; different schools must receive meaningfully different templates with similarity below 50%.
 
 ## Copy-Paste Prompt Skeleton
 
 ```md
 请生成一个“校长信箱”前端项目。默认技术栈为 React + Ant Design：空目录或用户未指定技术栈时必须用 React + Ant Design；已有工程遵循现有技术栈，已有 React 工程默认使用 Ant Design UI 组件。项目结构可以自行组织，但必须完整复用既有后端接口、宿主全局变量、payload 和跳转地址。
 
-视觉前置：开始实现前，必须先让用户输入一段 UI 风格描述；模型要尽可能补充专业学校门户框架、学校特色识别和精致优美的视觉细节，并学习吸收世界各地大学首页的成熟信息架构和视觉组织方式，博采众长、多创新，不复制任何单一高校模板；然后优先用 imagegen2 基于增强后的描述生成一张同时覆盖登录页和首页的效果图；给不同学校出图时模板相似度不得高于 50%，至少在首页框架、主视觉构图、模块顺序、色彩系统、校园符号、组件处理六项中拉开差异。效果图经用户确认后才进入工程实现。缺少风格描述或确认后的效果图时，不得创建工程文件、业务页面、mock 或发布产物。效果图只控制视觉方向，不覆盖接口、全局变量、payload、跳转、交互和产物合同。
+视觉前置：开始实现前，必须先让用户输入一段 UI 风格描述；然后逐项询问首页业务元素并保存带 `"__confirmedByUser": true` 的 homepage.answers.json；首页元素敲定之前不得生成设计稿。模型要尽可能补充专业学校门户框架、学校特色识别和精致优美的视觉细节，并学习吸收世界各地大学首页的成熟信息架构和视觉组织方式，博采众长、多创新，不复制任何单一高校模板；然后优先用 imagegen2 基于风格描述和已确认首页元素生成一张同时覆盖登录页和首页的设计稿/效果图；给不同学校出图时模板相似度不得高于 50%，至少在首页框架、主视觉构图、模块顺序、色彩系统、校园符号、组件处理六项中拉开差异。设计稿必须只使用已确认首页元素：开启元素必须出现，关闭元素不得出现，不允许自由发挥新增业务模块。设计稿经用户确认后才进入工程实现；代码必须按确认设计稿实现页面结构、模块位置、视觉层级和交互状态。缺少风格描述、首页元素答案或确认后的设计稿时，不得创建工程文件、业务页面、mock 或发布产物。设计稿不覆盖接口、全局变量、payload、跳转、交互和产物合同。
 
 交付强制要求：如果任务是生成或实现前端项目，必须创建/修改真实工程文件，不允许只输出提示词、说明文档、计划、伪代码或孤立代码片段。空目录必须初始化可运行 React + Ant Design 前端工程；已有工程必须融入现有技术栈和目录，若已有工程是 React 则默认使用 Ant Design。最终回复必须列出实际文件路径、启动命令、mock 预览命令、生产构建命令、验证结果、登录页产物路径和首页产物路径。只有用户明确要求“只生成提示词/文档/规范”时，才允许文本交付。
 
-样式边界：不要把当前项目的颜色、图片、间距、圆角、阴影、字体或 CSS 数值写入合同。新项目样式来自用户风格描述、AI 补充的学校门户专业化设计方向、全球高校首页优秀模式的综合吸收和确认后的效果图；本任务要求业务逻辑完整，不允许固化单一模板。
+样式边界：不要把当前项目的颜色、图片、间距、圆角、阴影、字体或 CSS 数值写入合同。新项目样式来自用户风格描述、已确认首页元素、AI 补充的学校门户专业化设计方向、全球高校首页优秀模式的综合吸收和确认后的设计稿；本任务要求业务逻辑完整，不允许固化单一模板。
 
 全局变量：window.contextPath、window.userId、window.userName、window.logoPath。所有相对接口和页面地址必须经过 buildPortalUrl(path) 拼接 window.contextPath；登录态使用 window.userId；用户名使用 window.userName || '用户'；logo 使用 buildPortalUrl(window.logoPath || '')。
 
@@ -463,7 +464,7 @@ No current-project concrete style details are part of this skill. New project vi
 
 交互标准：所有异步动作要有 loading/error/success/disabled 状态；字段错误贴近字段反馈，接口/网络错误用统一消息区、toast 或弹窗反馈；错误文案优先后端 message/msg/errorMessage/error/desc，默认“操作失败，请稍后重试”，网络默认“网络异常，请稍后重试”；取消确认不报错；列表要有 loading/empty/error/retry/load-more/no-more；弹窗和抽屉要有 submitting、validation error、api error 和关闭重置。
 
-工程步骤：先完成 UI 风格描述输入、效果图生成和用户确认；再逐项询问首页业务元素并保存带 `"__confirmedByUser": true` 的 homepage.answers.json；发现目标项目和脚本；空目录或未指定技术栈时初始化 React + Ant Design；运行 `scripts/detect-build-artifacts.mjs --root .`；读取 bundler 配置和实际构建输出反推出产物格式；生成或修改工程文件；设计 API 合同层、host globals helper、redirect helper、模型归一化、PC/mobile 页面；实现 dev mock shell，但必须与生产 build 完全隔离；先测合同层再做 UI；逐页完成 loading/empty/error/disabled/confirm/debounce/race guard；PC 和移动端业务流程独立，样式细节不入合同。最低落地文件组：登录页 Web Component entry、首页 Web Component entry、portal contract、request、redirect、normalize、query、mock preview、contract tests/checks；文件名可按技术栈调整但必须有等价文件。
+工程步骤：先完成 UI 风格描述输入；再逐项询问首页业务元素并保存带 `"__confirmedByUser": true` 的 homepage.answers.json；然后基于风格和首页元素生成设计稿并取得用户确认；发现目标项目和脚本；空目录或未指定技术栈时初始化 React + Ant Design；运行 `scripts/detect-build-artifacts.mjs --root .`；读取 bundler 配置和实际构建输出反推出产物格式；生成或修改工程文件；设计 API 合同层、host globals helper、redirect helper、模型归一化、PC/mobile 页面；实现 dev mock shell，但必须与生产 build 完全隔离；先测合同层再按确认设计稿做 UI；逐页完成 loading/empty/error/disabled/confirm/debounce/race guard；PC 和移动端业务流程独立，样式细节不入合同。最低落地文件组：登录页 Web Component entry、首页 Web Component entry、portal contract、request、redirect、normalize、query、mock preview、contract tests/checks；文件名可按技术栈调整但必须有等价文件。
 
 预览步骤：提供本地 mock 预览服务，可使用 scripts/mock-preview-server.mjs --home-js dist-home/portal.min.js --login-js dist-login/login.min.js。服务需提供 /preview/login、/preview/home 和 /preview/mail，固定接口 mock、window.contextPath/userId/userName/logoPath、公开信件、我的信件、服务电话、信件类型、评价维度、showPhone true/false、空列表和各类状态测试数据。mock endpoint 和 payload 必须与生产合同一致，但 mock、预览 shell、测试数据和 dev globals 只能存在于预览环境，生产产物不得依赖或内置。
 

@@ -227,7 +227,7 @@ ${renderQuestions()}
 下一步：
 1. 逐项询问用户并保存为 homepage.answers.json。
 2. 可以先用 --mode template 生成空答案模板，但必须由用户确认后填完整，并设置 "__confirmedByUser": true。
-3. 确认后运行：node .codex/skills/principal-mailbox-prompt/scripts/home-elements-dialog.mjs --mode fragment --answers homepage.answers.json`
+3. 确认后运行：${nodeCommand('home-elements-dialog.mjs')} --mode fragment --answers homepage.answers.json`
 }
 
 function renderFragment(answers) {
@@ -245,10 +245,13 @@ function renderFragment(answers) {
 
 生成要求：
 - 按上述业务配置实现首页元素。
+- 设计稿/效果图必须在本配置确认之后生成，并且只能围绕上述已确认元素设计。
 - 我的信件列表只能在登录后的二级视图展示；未登录不得请求或渲染列表，只能跳登录并带 view=mail redirect。
 - 不要把被关闭的元素做成可见 UI。
+- 不要在设计稿或代码中自由发挥新增未确认的首页模块、入口、列表、卡片或业务动作。
 - 被关闭元素对应的固定接口和 helper 可以保留，但不要在首页主动调用。
-- 样式细节不属于本配置；视觉方向使用前置 UI 风格描述和已确认效果图。`
+- 样式细节不属于本配置；视觉方向使用前置 UI 风格描述和基于本配置生成并确认后的设计稿。
+- 代码实现必须按确认后的设计稿落地页面结构、模块位置、视觉层级和交互状态；业务/API/跳转仍以合同为准。`
 }
 
 async function runInteractive() {
@@ -294,4 +297,8 @@ function parseArgs(items) {
     }
   }
   return result
+}
+
+function nodeCommand(scriptName) {
+  return `node "$SKILL_DIR/scripts/${scriptName}"`
 }
