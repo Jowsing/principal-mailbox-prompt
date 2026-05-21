@@ -9,7 +9,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 
 const contract = {
   visualPreflight:
-    '生成/实现前必须先收集用户 UI 风格描述，再逐项敲定首页元素，然后基于“风格+已确认元素”和整个技能合同补足专业学校门户框架、学校特色和精致视觉要求，吸收全球高校首页优秀模式并创新差异化，最后优先用 imagegen2 生成并确认一张登录页+首页设计稿/效果图；设计稿必须严格包含技能要求元素，缺元素或新增未确认模块必须重生成；缺少任一项时不得开始工程实现。',
+    '生成/实现前必须先收集用户 UI 风格描述，再逐项敲定现有项目组件槽位清单，然后基于“风格+已确认组件槽位”和整个技能合同补足专业学校门户框架、学校特色和精致视觉要求，吸收全球高校首页优秀模式并创新差异化，最后优先用 imagegen2 生成并确认一张登录页+首页设计稿/效果图；设计稿必须严格包含技能要求组件槽位，缺槽位或新增未确认模块必须重生成；缺少任一项时不得开始工程实现。',
   pages: [
     '业务产物固定为两个入口：登录页、首页；打包格式按当前 Vite library/component 构建反推',
     '登录页：手机号、短信验证码、60s倒计时、登录、统一认证入口、校验',
@@ -95,6 +95,7 @@ const contract = {
 
 const requiredFiles = [
   ['project entry', 'package/build config and app entry files; create them when starting from an empty project'],
+  ['component layout template', 'template equivalent to PrincipalMailboxTemplate with current project slots: appShell, loginBlock, actionCards, publicLettersBlock, servicePhoneBlock, noticeDialog, mailListBlock, userMenu'],
   ['login component entry', '登录页 Web Component entry equivalent to src/entry-login-component.ts'],
   ['home component entry', '首页 Web Component entry equivalent to src/entry-home-component.ts'],
   ['portal contract', 'fixed endpoints, fixed jumps, host globals, buildPortalUrl, hasLoggedInUser'],
@@ -149,7 +150,7 @@ const interactionRules = [
 contract.businessRules = businessRules
 contract.interactionRules = interactionRules
 contract.styleBoundary =
-  'Do not encode current style details; new visual direction comes from the user style description, confirmed homepage element answers, and confirmed design image. Code must restore the confirmed design one-to-one, with a design-fidelity map before coding and screenshot comparison before handoff.'
+  'Do not encode current style details; new visual direction comes from the user style description, confirmed component slot answers, and confirmed design image. Code must restore the confirmed design one-to-one, with a design-fidelity map before coding and screenshot comparison before handoff.'
 
 if (args.help) {
   console.log(`Usage:
@@ -168,7 +169,7 @@ Options:
   --style <text>       User UI style description.
   --style-file <file>  File containing the UI style description.
   --effect-image <ref> Approved design image path or URL.
-  --answers <file>     Required homepage answers JSON from user decisions, including __confirmedByUser=true.
+  --answers <file>     Required component-list answers JSON from user decisions, including __confirmedByUser=true.
 `)
   process.exit(0)
 }
@@ -219,8 +220,11 @@ ${renderVisualGate()}
 设计还原硬门禁：
 ${renderDesignFidelityGate()}
 
-首页元素强制选择：
+现有项目组件清单强制选择：
 ${homeFragment()}
+
+现有项目组件模板：
+${componentTemplateFragment()}
 
 交付强制要求：
 1. 如果任务是生成或实现前端项目，必须创建/修改真实工程文件，不允许只输出提示词、方案、清单或代码片段。
@@ -252,8 +256,8 @@ ${contract.productionPurity.map((item) => `- ${item}`).join('\n')}
 
 样式边界：
 1. 本提示词只固化业务逻辑，不固化当前项目颜色、间距、图片、圆角、阴影、字体等样式细节。
-2. 新项目的视觉方向来自用户 UI 风格描述、用户确认的首页元素、AI 补充的专业学校门户设计方向、全球高校首页优秀模式的综合吸收和已确认设计稿/效果图。
-3. 设计稿/效果图必须在首页元素敲定之后生成；设计时只能使用已确认元素，关闭元素不得出现在画面中，不允许自由发挥新增模块。
+2. 新项目的视觉方向来自用户 UI 风格描述、用户确认的组件槽位清单、AI 补充的专业学校门户设计方向、全球高校首页优秀模式的综合吸收和已确认设计稿/效果图。
+3. 设计稿/效果图必须在组件槽位清单敲定之后生成；设计时只能使用已确认槽位，未选择槽位不得出现在画面中，不允许自由发挥新增模块。
 4. 生成工程时必须按已确认设计稿实现页面结构、模块位置、视觉层级和交互状态；网页整体框架必须专业化，风格必须体现学校特色，界面必须精致优美。
 5. 不得复制任何单一高校首页模板；给不同学校出图时模板相似度不得高于 50%，至少在首页框架、主视觉构图、模块顺序、色彩系统、校园符号、组件处理六项中拉开差异。
 6. 不要把设计稿里的随机文案、虚构接口、额外页面或额外模块当成业务需求。
@@ -296,23 +300,24 @@ ${interactionRules.map((item) => `- ${item}`).join('\n')}
 
 工程执行顺序：
 1. 先询问 UI 风格描述并保存为 ui-style.brief.md；此时不得生成设计稿。
-2. 运行首页元素对话脚本，逐项让用户确认首页模块开关：${nodeCommand('home-elements-dialog.mjs')} --mode questions；确认后保存 homepage.answers.json，并用 --answers 传给后续脚本。
-3. 基于 UI 风格描述和已确认首页元素生成登录页+首页设计稿/效果图，并取得用户确认；设计稿必须只使用已确认元素，不允许自由发挥新增模块。
-4. 审查设计稿：如果技能要求元素缺失、关闭元素出现、或新增未确认模块，必须重生成设计稿，不能进入编码。
-5. 生成低上下文任务包：${nodeCommand('task-pack.mjs')} --mode write --root . --out principal-mailbox-task-pack --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json
-6. 生成设计还原门禁并创建 design-fidelity.map.md：${nodeCommand('design-fidelity-brief.mjs')} --mode brief --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json
-7. 再发现目标项目脚本、路由、入口、构建方式、样式系统；空目录或未指定栈时按 React + Ant Design 初始化。
-8. 运行构建产物探测脚本：${contract.artifacts.detectCommand}
-9. 生成或修改工程文件；最少要有登录页入口、首页入口、合同层、请求层、归一化层、query 转换、mock/预览、测试或检查脚本。
-10. 先写合同层：buildPortalUrl、hasLoggedInUser、requestJson、response normalize、query conversion、endpoint/jump constants。
-11. 给合同层补最小测试，再做 UI。
-12. 实现 dev mock 和本地预览，但 mock、预览 shell、测试数据必须与生产 build 完全隔离。
-13. 严格按 design-fidelity.map.md 和已确认设计稿一比一实现登录页、首页外壳、来信选登、登录后二级我的信件、来信须知、服务电话、评价弹窗和固定跳转。
-14. 完成 loading/empty/error/disabled、重复提交保护、搜索防抖、请求竞态保护、删除/撤回确认。
-15. ${mobile}。
-16. 截图对照登录页和首页；与设计稿有明显结构/比例/模块位置/视觉层级差异时继续改。
-17. 生产构建必须输出两个纯净 Web Component JS 产物：${contract.artifacts.home.fileName} 和 ${contract.artifacts.login.fileName}；不要把验收写成必须有 index.html。
-18. 用 mock 预览服务验证：${contract.preview}
+2. 运行组件清单对话脚本，逐项让用户确认当前项目组件槽位：${nodeCommand('home-elements-dialog.mjs')} --mode questions；确认后保存 homepage.answers.json，并用 --answers 传给后续脚本。
+3. 生成组件模板代码：${nodeCommand('component-template-kit.mjs')} --mode write --out principal-mailbox-component-template。
+4. 基于 UI 风格描述、已确认组件槽位和模板代码生成登录页+首页设计稿/效果图，并取得用户确认；设计稿必须只使用已确认槽位，不允许自由发挥新增模块。
+5. 审查设计稿：如果技能要求组件槽位缺失、未选择槽位出现、或新增未确认模块，必须重生成设计稿，不能进入编码。
+6. 生成低上下文任务包：${nodeCommand('task-pack.mjs')} --mode write --root . --out principal-mailbox-task-pack --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json
+7. 生成设计还原门禁并创建 design-fidelity.map.md：${nodeCommand('design-fidelity-brief.mjs')} --mode brief --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json
+8. 再发现目标项目脚本、路由、入口、构建方式、样式系统；空目录或未指定栈时按 React + Ant Design 初始化。
+9. 运行构建产物探测脚本：${contract.artifacts.detectCommand}
+10. 生成或修改工程文件；最少要有模板布局、登录页入口、首页入口、合同层、请求层、归一化层、query 转换、mock/预览、测试或检查脚本。
+11. 先写合同层：buildPortalUrl、hasLoggedInUser、requestJson、response normalize、query conversion、endpoint/jump constants。
+12. 给合同层补最小测试，再做 UI。
+13. 实现 dev mock 和本地预览，但 mock、预览 shell、测试数据必须与生产 build 完全隔离。
+14. 严格按组件模板、design-fidelity.map.md 和已确认设计稿一比一实现登录页、首页外壳、来信选登、登录后二级我的信件、来信须知、服务电话、评价弹窗和固定跳转。
+15. 完成 loading/empty/error/disabled、重复提交保护、搜索防抖、请求竞态保护、删除/撤回确认。
+16. ${mobile}。
+17. 截图对照登录页和首页；与设计稿有明显结构/比例/模块位置/视觉层级差异时继续改。
+18. 生产构建必须输出两个纯净 Web Component JS 产物：${contract.artifacts.home.fileName} 和 ${contract.artifacts.login.fileName}；不要把验收写成必须有 index.html。
+19. 用 mock 预览服务验证：${contract.preview}
 
 最低文件清单：
 ${requiredFiles.map(([name, description]) => `- ${name}: ${description}`).join('\n')}
@@ -337,24 +342,25 @@ function renderSteps() {
 PASS -1 风格输入门禁
 - 如果用户还没有提供 UI 风格描述，先运行：${nodeCommand('ui-style-intake.mjs')} --mode questions
 - 等用户输入风格描述后保存为 ui-style.brief.md，或后续命令直接用 --style。
-- 这里只收集风格，不生成设计稿/效果图；设计稿必须等 PASS 0 首页元素敲定后再生成。
+- 这里只收集风格，不生成设计稿/效果图；设计稿必须等 PASS 0 组件清单敲定后再生成。
 - 没有风格描述时，停止，不要进入 PASS 0。
 
 PASS 0 输入冻结
-- 运行首页元素对话脚本，向用户确认首页模块：${nodeCommand('home-elements-dialog.mjs')} --mode questions
-- 用户逐项确认后保存 homepage.answers.json；没有 --answers 时停止，不要用默认值继续。
-- 不在首页元素对话中询问颜色、间距、图片等样式细节；样式只使用 PASS -1 的风格描述和后续确认设计稿。
-- 首页元素敲定后生成设计稿提示词：${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json
+- 运行组件清单对话脚本，向用户确认当前项目组件槽位：${nodeCommand('home-elements-dialog.mjs')} --mode questions
+- 用户逐项确认后保存 homepage.answers.json；5 分钟无应答时可使用 timeout defaults；没有 --answers 时停止。
+- 不在组件清单对话中询问颜色、间距、图片等样式细节；样式只使用 PASS -1 的风格描述和后续确认设计稿。
+- 生成模板代码：${nodeCommand('component-template-kit.mjs')} --mode write --out principal-mailbox-component-template
+- 组件清单敲定后生成设计稿提示词：${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json
 - 优先调用 imagegen2 生成一张登录页 + 首页设计稿/效果图；如果环境没有 imagegen2，使用可用图像生成能力，但必须保留增强后的学校门户设计提示词。
-- 设计稿必须严格使用 homepage.answers.json 中已确认的元素：开启元素必须呈现，关闭元素不得出现，不允许自由发挥新增业务模块。
-- 预览图/设计稿必须严格遵守整个技能合同：两页入口、首页元素答案、我的信件登录后二级视图、React + Ant Design 默认组件模型、错误/loading/disabled/验证码倒计时状态、预览/生产隔离。
+- 设计稿必须严格使用 homepage.answers.json 中已确认的组件槽位：已选槽位必须呈现，未选槽位不得出现，不允许自由发挥新增业务模块。
+- 预览图/设计稿必须严格遵守整个技能合同：两页入口、组件清单答案、我的信件登录后二级视图、React + Ant Design 默认组件模型、错误/loading/disabled/验证码倒计时状态、预览/生产隔离。
 - 设计稿必须综合吸收世界大学首页优秀模式并创新，不得复制单一模板；不同学校方案相似度不得高于 50%。
 - 让用户确认设计稿；用户要求调整时先重新生成设计稿。
-- 若设计稿没有严格覆盖技能说明中的登录页、首页、已开启首页元素、错误/loading/disabled、验证码倒计时、登录后二级我的信件和预览/生产隔离表达，必须重生成设计稿。
-- 没有已确认首页元素和已确认设计稿时，停止，不要生成任务包或工程文件。
+- 若设计稿没有严格覆盖技能说明中的登录页、首页、已选组件槽位、错误/loading/disabled、验证码倒计时、登录后二级我的信件和预览/生产隔离表达，必须重生成设计稿。
+- 没有已确认组件清单和已确认设计稿时，停止，不要生成任务包或工程文件。
 - 优先生成任务包：${nodeCommand('task-pack.mjs')} --mode write --root . --out principal-mailbox-task-pack --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json
 - 运行：${nodeCommand('design-fidelity-brief.mjs')} --mode brief --style-file ui-style.brief.md --answers homepage.answers.json --effect-image <approved-image>
-- 根据确认设计稿创建 design-fidelity.map.md；没有这个文件不得进入页面 UI 编码。
+- 根据组件模板和确认设计稿创建 design-fidelity.map.md；没有这个文件不得进入页面 UI 编码。
 - 后续按 principal-mailbox-task-pack 的编号文件执行，减少上下文占用。
 - 运行构建产物探测脚本：${contract.artifacts.detectCommand}
 - 写下技术栈、构建命令、登录页入口、首页入口、产物目录和产物格式。
@@ -453,7 +459,7 @@ function renderFiles() {
 - 可以按目标技术栈改文件名和扩展名，但必须有等价文件。
 - 空项目必须创建完整可运行工程；已有项目必须融入现有目录。
 - 不允许只交付 Markdown、提示词、计划或代码片段。
-- 工程文件生成前必须已有用户 UI 风格描述、用户确认的首页元素、以及基于这些元素生成并确认的设计稿/效果图。
+- 工程文件生成前必须已有用户 UI 风格描述、用户确认的组件清单、以及基于这些槽位生成并确认的设计稿/效果图。
 - 代码必须按确认设计稿一比一实现页面结构、模块位置、视觉层级、比例密度和交互状态；不得脱离设计稿自由改版。
 - 页面 UI 编码前必须先创建 design-fidelity.map.md；最终交付前必须完成预览截图对照。
 
@@ -463,6 +469,7 @@ ${requiredFiles.map(([name, description]) => `- [ ] ${name}: ${description}`).jo
 推荐结构示例：
 - package.json：dev/build/preview/test 或等价脚本。
 - design-fidelity.map.md：确认设计稿的结构、模块、视觉层级、状态和截图对照清单。
+- principal-mailbox-component-template/ 或等价目录：由 component-template-kit.mjs 生成的组件槽位模板，作为布局框架和填槽基准。
 - 默认新建工程依赖：react、react-dom、antd，以及构建所需的 Vite/TypeScript 依赖；若目标已有 React 依赖，复用现有版本。
 - 构建配置：支持登录页/首页两个 component/library build mode。
 - src/main.*：应用启动或多页面挂载。
@@ -495,20 +502,21 @@ ${businessRules.map((item, index) => `${index + 1}. ${item}`).join('\n')}
 交互标准：
 ${interactionRules.map((item, index) => `${index + 1}. ${item}`).join('\n')}
 
-首页元素对话：
+组件清单对话：
 - 生成首页前先运行：${nodeCommand('home-elements-dialog.mjs')} --mode questions
-- 只询问业务模块和交互开关，不询问样式。
+- 只询问当前项目组件槽位和交互开关，不询问样式。
 - 必须逐项询问用户并用 --answers 传入回答文件；5 分钟无应答时才允许使用 timeout defaults。
 
-已确认首页配置：
+已确认组件清单：
 ${homeFragment()}
 
 视觉前置：
-- 业务逻辑之前先完成 UI 风格描述输入、首页元素确认、基于元素的设计稿生成和设计稿确认。
+- 业务逻辑之前先完成 UI 风格描述输入、组件清单确认、基于组件槽位的设计稿生成和设计稿确认。
+- 使用 component-template-kit.mjs 输出当前项目组件结构模板；用户样式描述落入布局框架，用户组件清单填入组件槽位。
 - AI 必须补足专业网站整体框架、学校特色识别和精致优美的视觉要求，并优先用 imagegen2 出设计稿/效果图。
 - AI 必须学习吸收世界各地大学首页的成熟信息架构，博采众长、多创新；不同学校出图模板相似度不得高于 50%。
-- 设计稿必须只使用已确认首页元素，不允许自由发挥新增模块；代码必须按确认设计稿实现。
-- 设计稿缺技能元素或新增未确认模块时必须重生成；代码前必须创建 design-fidelity.map.md，代码后必须截图对照设计稿一比一修正。
+- 设计稿必须只使用已确认组件槽位，不允许自由发挥新增模块；代码必须按确认设计稿实现。
+- 设计稿缺技能槽位或新增未确认模块时必须重生成；代码前必须创建 design-fidelity.map.md，代码后必须截图对照设计稿一比一修正。
 - 生成预览图时必须遵守整个技能合同，不能只按视觉风格出图。
 - 设计稿只影响视觉方向和页面落位，不影响上述业务/API/交互合同。`
 }
@@ -558,12 +566,12 @@ ${contract.productionPurity.map((item) => `- ${item}`).join('\n')}
 function renderChecklist() {
   return `验收清单：
 - [ ] 工程实现前已收集用户 UI 风格描述。
-- [ ] 首页元素已通过 home-elements-dialog.mjs 逐项询问，并传入用户确认或 5 分钟超时默认后的 --answers 文件。
+- [ ] 组件清单已通过 home-elements-dialog.mjs 逐项询问，并传入用户确认或 5 分钟超时默认后的 --answers 文件。
 - [ ] 已在用户描述基础上补足专业学校门户框架、学校特色和精致优美视觉要求。
 - [ ] 已吸收世界大学首页优秀模式并创新差异化；不同学校效果图模板相似度不高于 50%。
-- [ ] 已在首页元素敲定之后，优先用 imagegen2 生成一张登录页 + 首页设计稿/效果图，并经用户确认或明确接受。
-- [ ] 设计稿严格使用已确认首页元素：开启元素有位置，关闭元素未出现，没有新增未确认业务模块。
-- [ ] 设计稿严格符合技能说明元素；缺必需元素、关闭元素出现或新增未确认模块时已重生成，没有放行到代码阶段。
+- [ ] 已在组件清单敲定之后，优先用 imagegen2 生成一张登录页 + 首页设计稿/效果图，并经用户确认或明确接受。
+- [ ] 设计稿严格使用已确认组件槽位：已选槽位有位置，未选槽位未出现，没有新增未确认业务模块。
+- [ ] 设计稿严格符合技能说明槽位；缺必需槽位、未选槽位出现或新增未确认模块时已重生成，没有放行到代码阶段。
 - [ ] 预览图/设计稿严格遵守整个技能合同，没有漏掉两页入口、登录后二级我的信件、错误反馈、验证码倒计时、loading/disabled 和预览/生产隔离约束。
 - [ ] 已创建 design-fidelity.map.md，并先按它搭建布局/样式骨架。
 - [ ] 代码实现按确认设计稿一比一落地页面结构、模块位置、比例密度、视觉层级和交互状态。
@@ -578,7 +586,7 @@ function renderChecklist() {
 - [ ] mock、测试数据、dev globals、dev proxy 只存在于预览服务/测试脚本/dev-only 文件中，生产入口没有 import。
 - [ ] 首页内含来信选登、我要写信、我的信件登录后二级视图、来信须知、服务电话、评价弹窗。
 - [ ] 未登录点击我的信件只跳登录并带 view=mail redirect，不请求或渲染我的信件列表。
-- [ ] 没有把颜色、间距、图片、圆角、阴影等当前项目样式细节写成业务合同；新视觉仅来自用户风格描述、首页元素答案和确认后的设计稿。
+- [ ] 没有把颜色、间距、图片、圆角、阴影等当前项目样式细节写成业务合同；新视觉仅来自用户风格描述、组件清单答案和确认后的设计稿。
 - [ ] 所有固定接口路径逐字一致。
 - [ ] 所有 POST 都 credentials include + JSON headers。
 - [ ] logout 是 GET，redirect 指向 buildPortalUrl('/plugins/xzxx/portal/index')。
@@ -619,23 +627,29 @@ function renderVisualGate() {
   const styleLine = style ? `用户 UI 风格描述：${style}` : '用户 UI 风格描述：缺失时必须先询问用户，不能开始工程实现。'
   const imageLine = effectImage
     ? `已确认设计稿/效果图：${effectImage}`
-    : '已确认设计稿/效果图：缺失时必须先基于风格描述和已确认首页元素生成一张登录页+首页设计稿，并让用户确认。'
+    : '已确认设计稿/效果图：缺失时必须先基于风格描述和已确认组件清单生成一张登录页+首页设计稿，并让用户确认。'
   return `- ${contract.visualPreflight}
 - ${styleLine}
-- 首页元素：必须已通过 home-elements-dialog.mjs 逐项询问并传入 --answers；设计稿只能使用已确认元素。
+- 组件清单：必须已通过 home-elements-dialog.mjs 逐项询问并传入 --answers；设计稿只能使用已确认组件槽位。
 - AI 补充设计方向：专业学校门户整体框架、学校特色识别、精致优美页面质感；不得直接照搬过短描述生成简陋页面。
 - 全球高校借鉴约束：吸收优秀大学首页的信息架构和视觉组织方式，但不得复制单一模板；不同学校模板相似度不得高于 50%。
 - 全技能约束：生成预览图/设计稿时必须遵守整个技能合同，不能自由发挥覆盖业务、接口、跳转、交互状态或产物格式。
 - ${imageLine}
 - 可运行脚本：${nodeCommand('ui-style-intake.mjs')} --mode questions
-- 首页元素确认脚本：${nodeCommand('home-elements-dialog.mjs')} --mode questions
+- 组件清单确认脚本：${nodeCommand('home-elements-dialog.mjs')} --mode questions
 - 可生成设计稿提示词：${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json
 - 确认后的设计稿是代码实现依据；不得覆盖固定业务/API/全局变量/payload/跳转/产物格式/交互状态。`
 }
 
+function componentTemplateFragment() {
+  return `${runScript('component-template-kit.mjs', ['--mode', 'catalog'])}
+- 写出模板代码：${nodeCommand('component-template-kit.mjs')} --mode write --out principal-mailbox-component-template
+- 实现时先用用户样式描述落 layout frame 和 style tokens，再按 homepage.answers.json 填入已选组件槽位。`
+}
+
 function renderDesignFidelityGate() {
   const effectImage = args['effect-image'] || args.image || '<approved-design-image>'
-  return `- 设计稿合规先于编码：确认设计稿必须严格按技能说明和 homepage.answers.json 出图；缺必需元素、出现关闭元素、或新增未确认模块时，先重生成设计稿。
+  return `- 设计稿合规先于编码：确认设计稿必须严格按技能说明和 homepage.answers.json 出图；缺必需组件槽位、出现未选槽位、或新增未确认模块时，先重生成设计稿。
 - 编码前运行：${nodeCommand('design-fidelity-brief.mjs')} --mode brief --style-file ui-style.brief.md --answers homepage.answers.json --effect-image ${effectImage}
 - 编码前创建 design-fidelity.map.md，逐项拆解登录页和首页的结构、模块顺序、比例密度、视觉层级、状态表达。
 - Ant Design 只能作为组件基础，不能把页面做成通用默认后台模板；布局、密度、学校特色和模块位置必须服从确认设计稿。
@@ -649,18 +663,18 @@ function renderStyleBlocker() {
 ${nodeCommand('ui-style-intake.mjs')} --mode questions
 
 拿到用户 UI 风格描述后，保存为 ui-style.brief.md 或用 --style 传入。
-注意：此时不要生成设计稿；必须先完成首页元素选择。`
+注意：此时不要生成设计稿；必须先完成组件清单选择。`
 }
 
 function renderDesignBlocker() {
   return `设计稿未完成，停止生成业务 prompt。
 
-首页元素已经要求先确认。请基于 UI 风格描述和 homepage.answers.json 生成设计稿提示词：
+组件清单已经要求先确认。请基于 UI 风格描述和 homepage.answers.json 生成设计稿提示词：
 请先运行：
 ${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json
 
 生成登录页+首页设计稿/效果图并让用户确认后，再用 --effect-image <approved-image> 继续。
-设计稿必须只使用已确认首页元素；代码后续必须按确认设计稿实现。`
+设计稿必须只使用已确认组件槽位；代码后续必须按确认设计稿实现。`
 }
 
 function hasStyleInput() {
@@ -682,7 +696,7 @@ function homepageReady() {
 }
 
 function renderHomepageBlocker() {
-  return `首页元素选择未完成，停止生成业务 prompt。
+  return `组件清单选择未完成，停止生成业务 prompt。
 
 ${runScript('home-elements-dialog.mjs', ['--mode', 'questions'])}
 

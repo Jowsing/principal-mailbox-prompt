@@ -8,106 +8,110 @@ const defaultTimeoutMs = Number(args['timeout-ms'] || 300000)
 
 const questions = [
   {
-    id: 'publicLetters',
-    title: '来信选登',
-    question: '首页是否展示“来信选登”？',
-    default: 'yes',
+    id: 'appShell',
+    title: '页面外壳',
+    question: '是否使用当前项目页面外壳组件结构？',
+    default: 'standard',
     choices: [
-      ['yes', '展示，含类型筛选、列表、空态、加载态、详情跳转、阅读量'],
-      ['no', '不展示；仍保留相关接口能力，后续可打开']
+      ['standard', '使用 HeaderBrand、背景层、page-stage、page-header、page-main/page-content、footer 的现有结构'],
+      ['minimal', '只保留 HeaderBrand、主内容区和 footer；仍保持两页入口与固定业务合同']
     ]
   },
   {
-    id: 'publicLetterSearch',
-    title: '来信搜索',
-    question: '来信选登是否支持 keyword 搜索？',
-    default: 'pc-only',
-    choices: [
-      ['pc-only', 'PC 支持 300ms 防抖和回车搜索，移动端只做类型筛选'],
-      ['all', 'PC 和移动端都支持 keyword 搜索'],
-      ['none', '不展示搜索，只保留类型筛选']
-    ]
-  },
-  {
-    id: 'writeLetter',
-    title: '我要写信',
-    question: '首页是否展示“我要写信”？',
-    default: 'yes',
-    choices: [
-      ['yes', '展示；点击前必须 getConfig，按 noticeContent 决定是否先显示来信须知'],
-      ['no', '不展示；仍保留固定写信跳转能力']
-    ]
-  },
-  {
-    id: 'notice',
-    title: '来信须知',
-    question: '如果 getConfig 返回 noticeContent，是否必须先确认来信须知？',
-    default: 'required',
-    choices: [
-      ['required', '必须确认后才能打开写信固定地址'],
-      ['skip', '不拦截，直接打开写信固定地址']
-    ]
-  },
-  {
-    id: 'myLetters',
-    title: '我的信件',
-    question: '首页是否启用“我的信件”登录后二级视图？',
-    default: 'yes',
-    choices: [
-      ['yes', '启用；未登录只展示入口并跳登录，带 view=mail redirect；已登录进入二级视图后才请求并展示列表'],
-      ['no', '不启用列表；不得在首页主视图直接展示我的信件列表']
-    ]
-  },
-  {
-    id: 'myLetterActions',
-    title: '信件操作',
-    question: '我的信件需要哪些操作？',
+    id: 'loginBlock',
+    title: '登录页组件',
+    question: '登录页使用哪些现有组件槽位？',
     default: 'full',
     choices: [
-      ['full', '查看、草稿编辑/删除、to_review 撤回、reviewed/evaluated 评价'],
-      ['readonly', '只查看详情，不做删除/撤回/评价'],
-      ['no-evaluate', '查看、草稿编辑/删除、撤回，不做评价']
+      ['full', '使用 HeaderBrand + LoginCard + 背景/主视觉/页脚；LoginCard 含手机号、验证码、60s 倒计时、登录、统一认证'],
+      ['card-only', '只使用 LoginCard 作为登录核心，外层布局按用户样式描述重排']
     ]
   },
   {
-    id: 'servicePhone',
-    title: '校园服务电话',
-    question: '首页是否展示“校园服务电话”？',
-    default: 'config',
+    id: 'actionCards',
+    title: '快捷入口卡片',
+    question: '首页快捷入口使用哪些 ActionCard？',
+    default: 'write-mail',
     choices: [
-      ['config', '由 getConfig.showPhone 控制；false 时隐藏入口、清空列表、关闭抽屉'],
-      ['always', '始终展示，仍调用 phoneList'],
-      ['never', '不展示，不调用 phoneList']
+      ['write-mail', '使用两个 ActionCard：我要写信、我的信件'],
+      ['write-only', '只使用我要写信 ActionCard'],
+      ['mail-only', '只使用我的信件 ActionCard；未登录仍只跳登录并带 view=mail redirect']
     ]
   },
   {
-    id: 'servicePhoneSearch',
-    title: '电话搜索',
-    question: '服务电话抽屉是否支持搜索？',
+    id: 'publicLettersBlock',
+    title: '来信选登组件组',
+    question: '来信选登区域使用哪些现有组件？',
+    default: 'full',
+    choices: [
+      ['full', '使用 SliderTabs + keyword 搜索框 + LetterCard grid/list + empty/loading + load more'],
+      ['tabs-list', '使用 SliderTabs + LetterCard 列表，不展示 keyword 搜索'],
+      ['list-only', '只使用 LetterCard 列表和 load more'],
+      ['none', '不展示来信选登 UI；保留接口 helper，不主动请求']
+    ]
+  },
+  {
+    id: 'servicePhoneBlock',
+    title: '校园服务电话组件组',
+    question: '校园服务电话使用哪些现有组件？',
+    default: 'card-drawer',
+    choices: [
+      ['card-drawer', '使用 ServicePhoneCard 首页摘要 + ServicePhoneDrawer 全量抽屉和搜索'],
+      ['card-only', '只使用 ServicePhoneCard 摘要，不打开抽屉'],
+      ['drawer-only', '只保留 ServicePhoneDrawer 作为入口后的全量列表'],
+      ['none', '不展示服务电话 UI；showPhone=false 时仍不得请求或展示']
+    ]
+  },
+  {
+    id: 'noticeDialog',
+    title: '来信须知弹窗',
+    question: '写信前是否使用 LetterNoticeDialog？',
+    default: 'required',
+    choices: [
+      ['required', '使用 LetterNoticeDialog；getConfig.noticeContent 有效时必须确认后才能打开写信固定地址'],
+      ['skip', '不展示须知弹窗；仍调用 getConfig 并按固定写信跳转']
+    ]
+  },
+  {
+    id: 'mailListBlock',
+    title: '我的信件二级视图组件组',
+    question: '登录后的“我的信件”二级视图使用哪些现有组件？',
+    default: 'full',
+    choices: [
+      ['full', '使用 MailListFilters + MailListCard + MailProgressSteps + MailAttachmentList + MailEvaluateDialog，含查看、附件展示、草稿编辑/删除、to_review 撤回、reviewed/evaluated 评价'],
+      ['readonly', '使用 MailListFilters + MailListCard + MailProgressSteps + MailAttachmentList，只查看详情和附件'],
+      ['no-evaluate', '使用 MailListFilters + MailListCard + MailProgressSteps + MailAttachmentList，含编辑/删除/撤回，不使用 MailEvaluateDialog'],
+      ['entry-only', '首页只保留我的信件入口；未登录跳登录，登录后可进入空二级视图，不请求列表']
+    ]
+  },
+  {
+    id: 'userMenu',
+    title: '登录入口与用户菜单',
+    question: '头部登录态使用哪些现有组件？',
+    default: 'full',
+    choices: [
+      ['full', '未登录显示登录按钮；已登录使用 UserInfoDropdown 并支持 logoutPortal'],
+      ['minimal', '只展示登录按钮/用户名文本；仍必须保留登录/退出业务逻辑']
+    ]
+  },
+  {
+    id: 'decorativeAssets',
+    title: '装饰与品牌资产',
+    question: '是否复用当前项目资产槽位？',
     default: 'yes',
     choices: [
-      ['yes', '打开抽屉 force 拉取 pageSize=9999，并按 name/phone 本地搜索'],
-      ['no', '只展示列表，不搜索']
-    ]
-  },
-  {
-    id: 'readCount',
-    title: '阅读量',
-    question: '公开信件详情点击是否调用阅读接口并本地 +1？',
-    default: 'yes',
-    choices: [
-      ['yes', '已登录打开详情后 POST /plugins/xzxx/portal/read { bizId: readId }，成功后 readCount +1'],
-      ['no', '只打开详情，不更新阅读量']
+      ['yes', '保留 logo、背景图、ActionCard 图片、OverlapSquaresIcon、用户头像等资产槽位；具体视觉由用户样式描述重绘'],
+      ['no', '只保留资产占位接口，视觉素材由新项目自行提供']
     ]
   },
   {
     id: 'mobile',
-    title: '移动端',
-    question: '是否需要移动端独立业务流程？',
+    title: '移动端组件',
+    question: '是否使用当前项目移动端组件结构？',
     default: 'yes',
     choices: [
-      ['yes', '需要；移动端首页、登录、我的信件业务流程独立实现，可共享 API helper'],
-      ['no', '暂不做移动端']
+      ['yes', '使用 mobile/HomeWidgetApp、mobile/views/Home、mobile/views/Login、mobile/views/MailList 与 Mobile*Card/Drawer/Progress 结构'],
+      ['no', '暂不生成移动端组件；PC 结构先完整落地']
     ]
   }
 ]
@@ -151,15 +155,15 @@ if (mode === 'questions') {
 }
 
 function renderQuestions() {
-  return `首页元素业务选择问题：
+  return `现有项目组件清单选择问题：
 
 使用规则：
-- 只问业务元素和交互开关，不问颜色、图片、间距、字体、圆角、阴影等样式。
+- 只问当前项目已有组件槽位和交互开关，不问颜色、图片、间距、字体、圆角、阴影等样式。
 - 必须让用户逐项确认；括号里的默认值是 5 分钟无应答时的兜底值。
 - 每个确认问题最多等待 5 分钟；用户无应答时直接采用默认值并继续，不要无限等待。
 - 回答后保存为 homepage.answers.json，并加入 "__confirmedByUser": true，再用 --answers 传给后续脚本。
 - 如果 5 分钟无应答自动采用默认值，仍保存 homepage.answers.json，并加入 "__confirmedByUser": true、"__defaultedAfterTimeout": true。
-- 回答后按选择生成首页，但接口、全局变量、payload、固定跳转仍不可改。
+- 回答后按组件清单填入模板槽位；接口、全局变量、payload、固定跳转仍不可改。
 
 ${questions
   .map((item, index) => {
@@ -223,8 +227,8 @@ function normalizeAnswers(inputAnswers) {
     result[item.id] = value
   }
   if (missing.length || invalid.length) {
-    if (missing.length) console.error(`Missing homepage answers: ${missing.join(', ')}`)
-    if (invalid.length) console.error(`Invalid homepage answers: ${invalid.join(', ')}`)
+    if (missing.length) console.error(`Missing component-list answers: ${missing.join(', ')}`)
+    if (invalid.length) console.error(`Invalid component-list answers: ${invalid.join(', ')}`)
     console.error(renderQuestions())
     process.exit(2)
   }
@@ -232,7 +236,7 @@ function normalizeAnswers(inputAnswers) {
 }
 
 function renderAnswersBlocker() {
-  return `首页元素选择未完成，停止生成首页配置。
+  return `组件清单选择未完成，停止生成组件清单配置。
 
 ${renderQuestions()}
 
@@ -244,25 +248,32 @@ ${renderQuestions()}
 }
 
 function renderFragment(answers) {
-  return `首页元素业务配置：
-- 来信选登：${describe('publicLetters', answers.publicLetters)}
-- 来信搜索：${describe('publicLetterSearch', answers.publicLetterSearch)}
-- 我要写信：${describe('writeLetter', answers.writeLetter)}
-- 来信须知：${describe('notice', answers.notice)}
-- 我的信件：${describe('myLetters', answers.myLetters)}
-- 信件操作：${describe('myLetterActions', answers.myLetterActions)}
-- 校园服务电话：${describe('servicePhone', answers.servicePhone)}
-- 电话搜索：${describe('servicePhoneSearch', answers.servicePhoneSearch)}
-- 阅读量：${describe('readCount', answers.readCount)}
-- 移动端：${describe('mobile', answers.mobile)}
+  return `现有项目组件清单配置：
+- 页面外壳：${describe('appShell', answers.appShell)}
+- 登录页组件：${describe('loginBlock', answers.loginBlock)}
+- 快捷入口卡片：${describe('actionCards', answers.actionCards)}
+- 来信选登组件组：${describe('publicLettersBlock', answers.publicLettersBlock)}
+- 校园服务电话组件组：${describe('servicePhoneBlock', answers.servicePhoneBlock)}
+- 来信须知弹窗：${describe('noticeDialog', answers.noticeDialog)}
+- 我的信件二级视图组件组：${describe('mailListBlock', answers.mailListBlock)}
+- 登录入口与用户菜单：${describe('userMenu', answers.userMenu)}
+- 装饰与品牌资产：${describe('decorativeAssets', answers.decorativeAssets)}
+- 移动端组件：${describe('mobile', answers.mobile)}
+
+当前项目组件槽位：
+- 登录页：HeaderBrand、LoginCard、登录背景/主视觉/页脚。
+- 首页外壳：HeaderBrand、UserInfoDropdown、page-stage、page-header、page-main、footer。
+- 首页业务：ActionCard、SliderTabs、LetterCard、ServicePhoneCard、ServicePhoneDrawer、LetterNoticeDialog、OverlapSquaresIcon。
+- 我的信件二级视图：MailListFilters、MailListCard、MailProgressSteps、MailAttachmentList、MailEvaluateDialog。
+- 移动端：MobileMailCard、MobileProgressSteps、MobilePublicLetterCard、MobileServicePhoneDrawer。
 
 生成要求：
-- 按上述业务配置实现首页元素。
-- 设计稿/效果图必须在本配置确认之后生成，并且只能围绕上述已确认元素设计。
+- 按上述组件清单填入模板槽位，用户样式描述只决定布局框架、视觉层级和样式 tokens。
+- 设计稿/效果图必须在本配置确认之后生成，并且只能围绕上述已确认组件槽位设计。
 - 我的信件列表只能在登录后的二级视图展示；未登录不得请求或渲染列表，只能跳登录并带 view=mail redirect。
-- 不要把被关闭的元素做成可见 UI。
-- 不要在设计稿或代码中自由发挥新增未确认的首页模块、入口、列表、卡片或业务动作。
-- 被关闭元素对应的固定接口和 helper 可以保留，但不要在首页主动调用。
+- 不要把未选择的组件槽位做成可见 UI。
+- 不要在设计稿或代码中自由发挥新增未确认的模块、入口、列表、卡片或业务动作。
+- 未选择槽位对应的固定接口和 helper 可以保留，但不要在首页主动调用。
 - 样式细节不属于本配置；视觉方向使用前置 UI 风格描述和基于本配置生成并确认后的设计稿。
 - 代码实现必须按确认后的设计稿落地页面结构、模块位置、视觉层级和交互状态；业务/API/跳转仍以合同为准。`
 }

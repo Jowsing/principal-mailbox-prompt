@@ -16,7 +16,7 @@ Modes:
 
 Options:
   --effect-image <path|url> Approved design image reference.
-  --answers <file>          Confirmed homepage answers JSON.
+  --answers <file>          Confirmed component-list answers JSON.
   --style-file <file>       UI style brief.`)
   process.exit(0)
 }
@@ -46,8 +46,8 @@ function renderBrief() {
 已确认风格摘要：
 ${style || '<style brief not provided to this script>'}
 
-已确认首页元素：
-${answers || '<homepage answers not provided to this script>'}
+已确认组件清单：
+${answers || '<component-list answers not provided to this script>'}
 
 截图校验：
 - 实现后必须启动本地预览，用浏览器截图登录页和首页；至少覆盖桌面 1440x900，若启用移动端再覆盖 390x844。
@@ -60,7 +60,7 @@ function renderChecklist() {
 - [ ] 已创建 design-fidelity.map.md，且内容来自确认设计稿，不是泛化模板描述。
 - [ ] 登录页截图与设计稿的首屏构图、表单位置、认证入口、学校识别、背景/主视觉、按钮状态一致。
 - [ ] 首页截图与设计稿的头部、主视觉、模块顺序、模块数量、卡片比例、列表密度、页脚/辅助信息层级一致。
-- [ ] 已确认开启的首页元素全部出现；关闭元素和未确认模块没有出现。
+- [ ] 已确认启用的组件槽位全部出现；未选槽位和未确认模块没有出现。
 - [ ] 主色、辅助色、背景层次、边框/阴影/圆角倾向、字体层级与设计稿一致，不是通用 Ant Design 默认观感。
 - [ ] loading、empty、error、disabled、验证码倒计时、登录后二级我的信件等状态按设计稿风格表达。
 - [ ] 桌面 1440x900 截图已对比；移动端启用时 390x844 截图已对比。

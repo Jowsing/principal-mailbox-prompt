@@ -19,10 +19,12 @@ Script-first skill for weaker models. Use scripts instead of paraphrasing the co
 Run these gates in order before any business implementation, task pack, mock preview, or release artifact:
 
 1. **UI style**: ask with `ui-style-intake.mjs --mode questions`; if no answer after 5 minutes, write defaults with `ui-style-intake.mjs --mode default-style > ui-style.brief.md`.
-2. **Homepage elements**: after style and before image generation, ask with `home-elements-dialog.mjs --mode questions`; save `homepage.answers.json` with `"__confirmedByUser": true`, or after timeout run `home-elements-dialog.mjs --mode defaults > homepage.answers.json`.
+2. **Component list**: after style and before image generation, ask with `home-elements-dialog.mjs --mode questions`; this asks for current-project component slots, not freeform modules. Save `homepage.answers.json` with `"__confirmedByUser": true`, or after timeout run `home-elements-dialog.mjs --mode defaults > homepage.answers.json`.
 3. **Design image**: generate a prompt with `ui-style-intake.mjs --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json`, then create one 登录页+首页 design image, preferably with imagegen2. Ask for confirmation; if no answer after 5 minutes, accept the image.
 
-Design image rules: it must strictly follow the whole skill contract, confirmed homepage elements, 登录页/首页 only, login-only 我的信件 secondary view, React + Ant Design default component model, error/loading/disabled states, SMS countdown, and preview/production separation. Enabled elements must appear; disabled or unconfirmed modules must not. If the image omits required elements or invents modules, regenerate it before coding.
+Template rules: use the current project component-slot structure as the skeleton. Run `component-template-kit.mjs --mode catalog` or `--mode write` to get template code. The user style description decides layout frame and style tokens; the user component list decides which existing slots are filled. Do not invent modules outside the selected slots.
+
+Design image rules: it must strictly follow the whole skill contract, confirmed component list, 登录页/首页 only, login-only 我的信件 secondary view, React + Ant Design default component model, error/loading/disabled states, SMS countdown, and preview/production separation. Enabled component slots must appear; disabled or unconfirmed slots must not. If the image omits required slots or invents modules, regenerate it before coding.
 
 Design-to-code rules: after design confirmation, run `design-fidelity-brief.mjs` and create `design-fidelity.map.md` before UI coding. The code must restore the confirmed design one-to-one for page structure, module placement, visual hierarchy, density, and interaction-state presentation. After implementation, preview and screenshot 登录页 and 首页, compare them against the design image, and keep iterating until there is no obvious structural or visual mismatch.
 
@@ -35,7 +37,7 @@ Design-to-code rules: after design confirmation, run `design-fidelity-brief.mjs`
 - Artifact format: detect from the target project with `detect-build-artifacts.mjs`; this repo currently builds two IIFE Web Component JS files, `portal.min.js` and `login.min.js`.
 - Preview/production split: preview may use mock server, mock globals, test data, and `/preview/*`; production JS must not contain mock data, preview routes, localhost, `__artifact`, host-global overrides, or preview-server dependency.
 - 我的信件列表: login-only secondary view under 首页. It is not a separate package artifact and must not request or render before login.
-- Style is not contract. Visual direction comes only from user style, confirmed homepage answers, and confirmed design image.
+- Style is not contract. Visual direction comes only from user style, confirmed component-list answers, component template, and confirmed design image.
 
 ## Commands
 
@@ -43,6 +45,7 @@ Design-to-code rules: after design confirmation, run `design-fidelity-brief.mjs`
 SKILL_DIR=/path/to/principal-mailbox-prompt
 node "$SKILL_DIR/scripts/ui-style-intake.mjs" --mode questions
 node "$SKILL_DIR/scripts/home-elements-dialog.mjs" --mode questions
+node "$SKILL_DIR/scripts/component-template-kit.mjs" --mode write --out principal-mailbox-component-template
 node "$SKILL_DIR/scripts/ui-style-intake.mjs" --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json
 node "$SKILL_DIR/scripts/detect-build-artifacts.mjs" --root .
 node "$SKILL_DIR/scripts/task-pack.mjs" --mode context --root . --style-file ui-style.brief.md --answers homepage.answers.json --effect-image <approved-image>
@@ -55,7 +58,7 @@ node "$SKILL_DIR/scripts/task-pack.mjs" --mode verify --root . --home-js dist-ho
 
 ## Implementation Order
 
-1. Collect UI style, confirm homepage elements, generate/confirm a contract-compliant design image.
+1. Collect UI style, confirm component list, write/read the component template, generate/confirm a contract-compliant design image.
 2. Detect scripts, entrypoints, and artifact format.
 3. Create `design-fidelity.map.md`, missing page entries, contract helpers, contract tests, and mock preview.
 4. Implement 登录页, interaction states, 首页 modules, and logged-in 我的信件 secondary view one-to-one against the design.
@@ -66,7 +69,8 @@ node "$SKILL_DIR/scripts/task-pack.mjs" --mode verify --root . --home-js dist-ho
 - `frontend-prompt-kit.mjs`: compressed prompt, steps, file list, business rules, artifacts, checklist, contract JSON.
 - `task-pack.mjs`: compact context, numbered task pack, and verification wrapper.
 - `ui-style-intake.mjs`: style/default intake, homepage-gated image prompt, visual gate fragment.
-- `home-elements-dialog.mjs`: homepage business-element questions, timeout defaults, answer fragment.
+- `home-elements-dialog.mjs`: current-project component-slot questions, timeout defaults, answer fragment.
+- `component-template-kit.mjs`: component catalog and React + Ant Design template code based on the existing project blocks.
 - `design-fidelity-brief.mjs`: mandatory design decomposition and screenshot comparison gate.
 - `detect-build-artifacts.mjs`: build/artifact inference from package and bundler config.
 - `mock-preview-server.mjs`: local mock APIs, host globals, login/home previews, fixed jump pages.
