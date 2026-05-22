@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
+import path from 'node:path'
 import { createInterface } from 'node:readline/promises'
 import { stdin as input, stdout as output } from 'node:process'
 
@@ -100,8 +101,8 @@ const questions = [
     question: '是否复用当前项目资产槽位？',
     default: 'yes',
     choices: [
-      ['yes', '保留 logo、背景图、ActionCard 图片、OverlapSquaresIcon、用户头像等资产槽位；具体视觉由用户样式描述重绘'],
-      ['no', '只保留资产占位接口，视觉素材由新项目自行提供']
+      ['yes', '保留 logo、校园主图/背景图、地标建筑/校园纹理、ActionCard 图片、OverlapSquaresIcon、用户头像等资产槽位；具体视觉由用户样式描述和学校素材重绘'],
+      ['no', '只保留资产占位接口，视觉素材由新项目自行提供；仍建议用 imagegen2 或用户素材补齐学校图片']
     ]
   },
   {
@@ -130,7 +131,8 @@ Fragment mode requires --answers from user decisions or timeout defaults.
 If the user does not answer within 5 minutes, use defaults and mark them as timeout defaults.
 
 Options:
-  --timeout-ms <n>  Interactive question timeout. Default: 300000.`)
+  --timeout-ms <n>  Interactive question timeout. Default: 300000.
+  --out <file>      In interactive mode, write confirmed JSON answers to file.`)
   process.exit(0)
 }
 
@@ -268,8 +270,10 @@ function renderFragment(answers) {
 - 移动端：MobileMailCard、MobileProgressSteps、MobilePublicLetterCard、MobileServicePhoneDrawer。
 
 生成要求：
-- 按上述组件清单填入模板槽位，用户样式描述只决定布局框架、视觉层级和样式 tokens。
+- 按上述组件清单填入模板槽位，用户样式描述决定 layoutVariant、学校视觉资产、视觉层级和样式 tokens。
 - 设计稿/效果图必须在本配置确认之后生成，并且只能围绕上述已确认组件槽位设计。
+- decorativeAssets=yes 时，设计稿和代码必须使用校徽/Logo、校园主图、地标建筑、校园纹理中的至少两类；缺素材时用 imagegen2 生成。
+- React + Ant Design 工程必须用 Ant Design 组件矩阵实现对应 UI，小组件必须对齐、等高、错误位稳定。
 - 我的信件列表只能在登录后的二级视图展示；未登录不得请求或渲染列表，只能跳登录并带 view=mail redirect。
 - 不要把未选择的组件槽位做成可见 UI。
 - 不要在设计稿或代码中自由发挥新增未确认的模块、入口、列表、卡片或业务动作。
@@ -279,24 +283,34 @@ function renderFragment(answers) {
 }
 
 async function runInteractive() {
-  const rl = createInterface({ input, output })
   const answers = {}
-  try {
-    for (const item of questions) {
-      console.log(`\n${item.title}: ${item.question}`)
-      item.choices.forEach(([value, description]) => {
-        console.log(`  ${value}${value === item.default ? ' (default)' : ''}: ${description}`)
-      })
-      const value = (await questionWithTimeout(rl, `选择 [${item.default}]，${Math.round(defaultTimeoutMs / 1000)}s 后默认: `, item.default)).trim()
-      const allowed = new Set(item.choices.map(([choice]) => choice))
-      answers[item.id] = allowed.has(value) ? value : item.default
-    }
-  } finally {
-    rl.close()
+  let usedTimeoutDefault = false
+  for (const item of questions) {
+    console.log(`\n${item.title}: ${item.question}`)
+    item.choices.forEach(([value, description]) => {
+      console.log(`  ${value}${value === item.default ? ' (default)' : ''}: ${description}`)
+    })
+    const response = await questionWithTimeout(`选择 [${item.default}]，${Math.round(defaultTimeoutMs / 1000)}s 后默认: `, item.default)
+    if (response.timedOut) usedTimeoutDefault = true
+    const value = response.value.trim()
+    const allowed = new Set(item.choices.map(([choice]) => choice))
+    answers[item.id] = allowed.has(value) ? value : item.default
   }
 
   answers.__confirmedByUser = true
-  console.log('\n' + JSON.stringify(answers, null, 2))
+  answers.__confirmationSource = usedTimeoutDefault ? 'interactive-partial-timeout-default' : 'interactive'
+  if (usedTimeoutDefault) {
+    answers.__defaultedAfterTimeout = true
+    answers.__timeoutMs = defaultTimeoutMs
+  }
+  const json = JSON.stringify(answers, null, 2)
+  if (args.out) {
+    const outPath = path.resolve(args.out)
+    writeFileSync(outPath, `${json}\n`, 'utf8')
+    console.log(`\n组件清单已写入：${outPath}`)
+  } else {
+    console.log('\n' + json)
+  }
   console.log('\n' + renderFragment(answers))
 }
 
@@ -306,20 +320,34 @@ function describe(id, value) {
   return choice ? `${choice[0]} - ${choice[1]}` : String(value || '')
 }
 
-async function questionWithTimeout(rl, prompt, defaultValue) {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), defaultTimeoutMs)
-  try {
-    return await rl.question(prompt, { signal: controller.signal })
-  } catch (error) {
-    if (error?.name === 'AbortError') {
+function questionWithTimeout(prompt, defaultValue) {
+  const rl = createInterface({ input, output })
+  return new Promise((resolve, reject) => {
+    let settled = false
+    const timer = setTimeout(() => {
+      if (settled) return
+      settled = true
       console.log(`\n超时未答，使用默认值：${defaultValue}`)
-      return defaultValue
-    }
-    throw error
-  } finally {
-    clearTimeout(timer)
-  }
+      rl.close()
+      resolve({ value: defaultValue, timedOut: true })
+    }, defaultTimeoutMs)
+
+    rl.question(prompt)
+      .then((value) => {
+        if (settled) return
+        settled = true
+        clearTimeout(timer)
+        rl.close()
+        resolve({ value, timedOut: false })
+      })
+      .catch((error) => {
+        if (settled) return
+        settled = true
+        clearTimeout(timer)
+        rl.close()
+        reject(error)
+      })
+  })
 }
 
 function parseArgs(items) {

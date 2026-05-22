@@ -14,8 +14,12 @@ const DEFAULT_STYLE_BRIEF = `# UI 风格描述
 - 参考对象：综合吸收世界高校首页的信息架构，不复制单一模板。
 - 禁止项：不要营销海报感、不要廉价渐变堆叠、不要新增未确认业务模块。
 - 学校特色：优先使用用户或宿主提供的校名、校徽、校训、校园建筑；缺失时保留中性学校识别占位。
+- 学校图片：必须使用校徽/Logo、校园主图、地标建筑、校园纹理中的至少两类；缺素材时用 imagegen2 生成。
+- 布局变体：默认选择 campusGateway，但不同学校必须改 layoutVariant 或显著改主视觉/模块顺序/组件处理。
 - 差异化要求：不同学校模板相似度不得高于 50%。
-- 其他偏好：按 React + Ant Design 可落地组件设计，覆盖错误、loading、disabled、验证码倒计时等状态。`
+- Ant Design：按 React + Ant Design 可落地组件设计，表单/按钮/栅格/卡片/列表/标签页/抽屉/弹窗/评分/消息/空态/加载/错误态都用 Ant Design。
+- 对齐要求：24px 栅格、8px 子栅格、卡片等高、表单错误位稳定、列表列宽固定。
+- 其他偏好：覆盖错误、loading、disabled、验证码倒计时等状态。`
 const style = readStyleInput() || (args['use-defaults'] ? DEFAULT_STYLE_BRIEF : '')
 const effectImage = args['effect-image'] || args.image || ''
 const target = args.target || '校长信箱登录页和首页'
@@ -82,7 +86,8 @@ function renderQuestions() {
 4. 参考对象：可选，例如某网站、某系统、某张图、品牌规范。
 5. 禁止项：可选，例如不要营销感、不要渐变、不要插画、不要深色。
 6. 学校特色：可选，例如校名、校徽/Logo、校训、校园建筑、学院色、服务对象。
-7. 差异化要求：可选，例如希望更学术、更现代、更国际化、不要和其他学校模板太像。
+7. 学校视觉素材：可选，例如校徽图片、校园建筑图片、官网图片、校训字标；没有素材时说明允许 imagegen2 生成。
+8. 差异化要求：可选，例如希望更学术、更现代、更国际化、不要和其他学校模板太像。
 
 收到风格描述后，不要立即生成设计稿或效果图；必须先进入现有项目组件清单选择。
 最多等待用户 5 分钟；5 分钟无应答时，使用脚本默认风格：专业、清爽、精致的学校公共服务门户。
@@ -90,6 +95,9 @@ function renderQuestions() {
 组件清单敲定后，才能生成一张 ${target} 的设计稿/效果图，并让用户确认或修改。
 如果用户描述较短，模型必须主动补全专业校园门户设计方向，不得直接用简陋描述生成。
 模型必须吸收世界各地大学首页的成熟模式，博采众长、多创新；不同学校出图模板相似度不得高于 50%。
+模型还必须吸收非学校优秀项目/设计系统的成熟做法，例如公共服务任务流、产品级组件密度、品牌系统、微交互和工程化设计规范；不要局限于学校官网。
+模型必须为本学校选择或生成一个 layoutVariant，并规划至少两类学校视觉资产；不能所有学校都用同一个布局骨架。
+模型必须按 React + Ant Design 组件能力设计小组件，不得把输入框、按钮、标签页、抽屉、弹窗、列表状态画成随意的 div 样式。
 设计稿必须围绕已确认组件槽位设计，不允许自由发挥新增模块；效果图未生成或未确认前，不要开始生成工程文件、业务合同层、页面或 mock。`
 }
 
@@ -102,6 +110,8 @@ function renderTemplate() {
 - 参考对象：
 - 禁止项：
 - 学校特色：
+- 学校视觉素材：
+- 期望 layout 方向：
 - 差异化要求：
 - 其他偏好：
 `
@@ -120,6 +130,12 @@ ${homeFragment()}
 AI 必须补充的设计方向：
 ${renderAugmentedStyleBrief(styleText)}
 
+必须使用的布局变体和组件质量规则：
+${componentTemplateQuality()}
+
+优秀项目学习与优美实现方案：
+${designReference()}
+
 全技能合同约束：
 - 生成预览图/设计稿时必须严格遵守整个 principal-mailbox-prompt 技能，不允许只按视觉风格自由出图。
 - 设计稿自身必须逐项符合技能说明；如果缺少必需组件槽位、把未选槽位画出来、或新增未确认模块，必须重生成，不得让代码阶段补救。
@@ -127,21 +143,23 @@ ${renderAugmentedStyleBrief(styleText)}
 - 登录页必须覆盖手机号、短信验证码、获取验证码、60s 倒计时、登录、统一认证、字段错误、接口错误、loading/disabled 状态的可视表达。
 - 首页必须按已确认组件槽位和技能业务逻辑设计：ActionCard、SliderTabs、LetterCard、ServicePhoneCard/Drawer、LetterNoticeDialog、MailList*、MailAttachmentList、MailEvaluateDialog 等只按清单出现。
 - 我的信件列表只能表现为登录后的首页二级视图或入口状态；未登录状态只能展示入口/登录引导，不能直接渲染列表。
-- 默认以 React + Ant Design 可落地组件为基准，体现表单、按钮、卡片、标签页、列表、抽屉、弹窗、消息反馈、空态/错误态/加载态。
+- 默认以 React + Ant Design 可落地组件为基准，必须明确表现 Layout/Grid/Form/Input/Button/Card/Tabs/List/Drawer/Modal/Rate/Message/Empty/Spin/Alert/Tag 的组件质感和对齐方式。
 - 预览图可以表达 mock 预览所需测试状态，但不得暗示生产产物内置 mock、测试数据、localhost、/preview 或额外业务接口。
 - 固定接口、全局变量、payload、跳转地址、产物格式和交互标准不能被预览图里的随机内容覆盖。
 
 画面要求：
 - 同一张图里同时表现登录页和首页的整体视觉风格；建议左侧为登录页，右侧为首页主界面。
-- 登录页必须像真实学校门户入口：学校标识区、校名/校徽占位、手机号输入、验证码输入、获取验证码、登录、统一认证入口。
+- 登录页必须像真实学校门户入口：学校标识区、校名/校徽、校园主图或地标图、手机号输入、验证码输入、获取验证码、登录、统一认证入口。
 - 首页必须严格按“已确认现有项目组件清单”设计：已选组件槽位必须有清晰视觉位置；未选槽位不得出现在画面中；不得新增未确认模块。
 - 首页必须像专业校园服务门户：品牌头部、已确认的来信选登/我要写信/我的信件入口/来信须知/校园服务电话/评价弹窗入口等业务模块都有清晰视觉占位。
 - 整体框架要专业化：完整页头、主视觉/信息摘要、内容区网格、模块卡片、列表区、二级视图入口、页脚或辅助信息层次。
-- 风格必须体现学校特色：校园秩序感、公共服务可信感、学术/校园文化气质、可放置校徽/校训/校园建筑图像的位置。
+- 风格必须体现学校特色：校园秩序感、公共服务可信感、学术/校园文化气质、校徽/校训/校园建筑图像必须成为首屏视觉信号。
+- 必须有真实或 imagegen2 生成的学校图片，不允许只有渐变、色块、抽象图形或纯白卡片。
 - 吸收全球大学首页优秀模式：参考其清晰导航、校园图像组织、公告/服务入口、学术文化表达和可信信息层级，但不要复制任何单一高校模板。
+- 不局限于学校官网：同时吸收公共服务设计系统、Ant Design/Pro Layout、Stripe/Vercel/Linear 等优秀项目的任务流、组件系统、品牌 craft 和工程化规范。
 - 多创新、强差异：给不同学校出图时模板相似度不得高于 50%；至少在首页框架、主视觉构图、模块顺序、色彩系统、校园符号、组件处理六项中改变四项以上。
 - 页面必须精致优美：留白克制、层级清晰、组件一致、阴影/描边/圆角细腻，避免廉价模板感、营销海报感、杂乱堆叠。
-- 默认表现为 React + Ant Design 可落地的表单、卡片、标签页、按钮、弹窗/抽屉、列表和状态组件质感。
+- 默认表现为 React + Ant Design 可落地的表单、卡片、标签页、按钮、弹窗/抽屉、列表和状态组件质感；小组件必须对齐，卡片同排等高，表单错误和验证码按钮位置稳定。
 - 只表达视觉方向、布局气质、组件风格和信息层级，不要求文字完全可读。
 - 不要生成真实接口、代码、流程图、营销海报或纯插画。
 - 设计稿经用户确认后，后续代码必须按设计稿实现页面结构、模块位置和交互状态；不能再脱离设计稿自由改版。
@@ -152,9 +170,11 @@ ${renderAugmentedStyleBrief(styleText)}
 function renderAugmentedStyleBrief(styleText) {
   return `- 在用户描述基础上主动补齐缺失信息；不要因为用户描述少就生成简陋页面。
 - 网页整体框架采用专业学校门户/公共服务平台结构，而不是单页宣传页。
-- 视觉必须有学校识别：校徽/Logo 占位、校名区域、校训或校园文化短语位置、校园建筑/图书馆/教学楼意象、学术服务氛围。
+- 视觉必须有学校识别：校徽/Logo、校名区域、校训或校园文化短语位置、校园建筑/图书馆/教学楼意象、学术服务氛围；缺素材时用 imagegen2 生成校园主图和地标图。
 - 学习吸收世界各地大学首页的成熟组织方式：清晰导航、公共服务入口、校园影像、公告/新闻层级、学术文化表达、可信认证入口；只能综合吸收，不能照搬某个学校。
 - 针对不同学校必须重新组合视觉 DNA：模板相似度不得高于 50%，优先改动首页框架、主视觉构图、模块顺序、色彩系统、校园符号、组件处理。
+- 必须选择 layoutVariant：campusGateway、landmarkSplit、serviceDashboard、academicMagazine、noticeBoard 或等价新变体；不得所有学校都默认同一布局。
+- React + Ant Design 必须是真实落地基础：Layout/Grid/Form/Input/Button/Card/Tabs/List/Drawer/Modal/Rate/Message/Empty/Spin/Alert/Tag 都要映射到对应 UI，不允许用 div 伪造。
 - 设计稿必须由已确认组件槽位驱动；组件清单没有确认前不能出图，未选槽位不能被画进设计稿。
 - 信息架构要高级：登录页强调可信入口和认证流程；首页强调模块导航、来信选登、我的信件二级入口、服务电话和须知信息。
 - 保持精致优美：低噪声背景、统一栅格、清晰卡片层级、克制动效暗示、细腻边框和阴影、足够留白、色彩有主辅和点缀。
@@ -170,11 +190,14 @@ function renderFragment() {
 - 已确认组件清单：
 ${homeFragment()}
 - AI 补充设计方向：必须补足专业学校门户框架、学校特色识别、精致优美的页面质感，并优先用 imagegen2 生成设计稿/效果图。
-- 全球高校借鉴与差异化：必须综合吸收世界大学首页优秀模式并创新，不复制单一模板；不同学校模板相似度不得高于 50%。
+- 全球高校借鉴与差异化：必须综合吸收世界大学首页优秀模式并创新，不复制单一模板；不同学校模板相似度不得高于 50%，必须选择 layoutVariant 并改变主视觉/模块顺序/组件处理。
+- 学校图片硬约束：decorativeAssets=yes 时，必须使用校徽/Logo、校园主图、地标建筑、校园纹理中的至少两类；缺素材时用 imagegen2 生成，不得只用渐变色块。
+- Ant Design 硬约束：React 项目必须真实使用 Ant Design 组件矩阵，小组件对齐、等高、错误位和列表列宽要进入设计稿和代码验收。
 - 预览图生成约束：必须严格遵守整个技能合同，包括两页入口、组件清单答案、我的信件登录后二级视图、React + Ant Design 默认组件模型、错误/loading/disabled/验证码倒计时状态、预览/生产隔离。
 - 已确认设计稿/效果图：${imageText}
 - 生成/实现工程前必须先完成风格输入、组件清单确认、设计稿生成和设计稿确认；缺任一项时停止业务实现，先补齐输入。
 - 设计稿合规门禁：如果设计稿缺少技能要求组件槽位、把未选槽位画出来、或新增未确认业务模块，必须先重生成设计稿，不得进入代码实现。
+- UI 质量门禁：如果设计稿所有学校 layout 近似、缺学校图片、组件像手写 div、卡片/表单/列表明显不齐，必须先重生成设计稿，不得进入代码实现。
 - 效果图/设计稿是代码实现依据：页面结构、模块位置、视觉层级、交互状态必须按设计稿落地。
 - 一比一还原门禁：代码前先写 design-fidelity.map.md；代码后必须本地预览截图，与设计稿对照修正到无明显结构和视觉偏差。
 - 业务/API/全局变量/payload/跳转/产物格式/交互状态仍以校长信箱合同为准，设计稿不得覆盖业务合同。
@@ -196,9 +219,10 @@ function writeStylePack() {
   const files = {
     '01-ui-style-question.md': renderQuestions(),
     '02-ui-style-template.md': renderTemplate(),
-    '03-homepage-elements.fragment.md': homeFragment(),
+    '03-component-list.fragment.md': homeFragment(),
     '04-design-image-prompt.md': renderImagePrompt(),
-    '05-style-fragment.md': renderFragment()
+    '05-style-fragment.md': renderFragment(),
+    '06-design-reference.md': designReference()
   }
 
   for (const [fileName, content] of Object.entries(files)) {
@@ -261,6 +285,18 @@ ${runScript('home-elements-dialog.mjs', ['--mode', 'questions'])}
 
 function homeFragment() {
   return runScript('home-elements-dialog.mjs', ['--mode', 'fragment', '--answers', path.resolve(args.answers)])
+}
+
+function componentTemplateQuality() {
+  return `${runScript('component-template-kit.mjs', ['--mode', 'variants'])}
+
+${runScript('component-template-kit.mjs', ['--mode', 'quality'])}`
+}
+
+function designReference() {
+  return `${runScript('design-reference-kit.mjs', ['--mode', 'study'])}
+
+${runScript('design-reference-kit.mjs', ['--mode', 'scheme'])}`
 }
 
 function runScript(scriptName, scriptArgs) {

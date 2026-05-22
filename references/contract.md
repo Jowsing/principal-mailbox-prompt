@@ -4,12 +4,13 @@ Default workflow: use `scripts/frontend-prompt-kit.mjs` to emit compressed promp
 
 Project structure is flexible. Backend APIs, host globals, payload formats, response normalization, and jump URLs are fixed. Default frontend stack is React + Ant Design when the target is empty or the user does not specify a stack; existing projects should keep their current stack unless the user explicitly asks to migrate.
 
-Style details are intentionally not part of this contract. Do not preserve or require current colors, images, spacing, radius, shadows, typography, or CSS values. Business logic must be detailed. Before generating or implementing the project, collect a user UI style description, then ask and confirm current-project component slots, then enrich sparse input with professional school-portal structure, school identity cues, refined visual quality, and broad inspiration from strong university homepages worldwide. Only after component slots are confirmed, generate one design/effect image for 登录页 + 首页 preferably with imagegen2 and get user confirmation. Preview/design image generation must follow this entire skill contract, not only the visual style text. The design image must be driven by confirmed component slots: enabled slots appear, disabled slots do not appear, and unconfirmed modules are not invented. If the design omits required slots or invents unconfirmed modules, regenerate it before coding. Do not copy a single university template; for different schools, keep visual template similarity below 50% by varying layout framework, hero composition, module order, color system, campus symbols, and component treatment. That confirmed design drives page structure, module placement, visual hierarchy, density, and interaction-state presentation one-to-one, but it never overrides the business contract. Before UI coding, create design-fidelity.map.md from the confirmed design; before handoff, screenshot login/home previews and compare them against the design until there is no obvious structural or visual mismatch.
+Style details are intentionally not part of this contract. Do not preserve or require current colors, spacing, radius, shadows, typography, or CSS values. Business logic must be detailed. Before generating or implementing the project, collect a user UI style description, then ask and confirm current-project component slots, then run the reference study workflow. References are not limited to school official sites: learn from world-famous university homepages, public-service design systems, product websites, design systems, and Ant Design/Pro Layout. Use that study only to extract information architecture, service flow, visual craft, component systems, brand systems, and layout strategies. Then choose a differentiated layout variant, require school visual assets, and enrich sparse input with professional school-portal structure, school identity cues, refined visual quality, and broad inspiration from strong university homepages and non-school excellent projects. Only after component slots are confirmed, generate one design/effect image for 登录页 + 首页 preferably with imagegen2 and get user confirmation. Preview/design image generation must follow this entire skill contract, not only the visual style text. The design image must be driven by confirmed component slots, reference-study translation, layout variant, and school image plan: enabled slots appear, disabled slots do not appear, unconfirmed modules are not invented, and decorativeAssets=yes includes at least two school visual assets such as logo, campus hero image, landmark building, campus texture, or imagegen2-generated equivalents. If the design omits required slots, lacks school images, uses the same layout skeleton for every school, aligns widgets poorly, or invents unconfirmed modules, regenerate it before coding. Do not copy a single university or non-school template; for different schools, keep visual template similarity below 50% by varying layout framework, hero composition, module order, color system, campus symbols, and component treatment. React + Ant Design implementations must use Ant Design components for matching controls and state surfaces, not div/span pseudo-components. That confirmed design drives page structure, module placement, visual hierarchy, density, school imagery, AntD component mapping, alignment, and interaction-state presentation one-to-one, but it never overrides the business contract. Before UI coding, create design-fidelity.map.md from the confirmed design; before handoff, screenshot login/home previews and compare them against the design until there is no obvious structural, component, alignment, or visual mismatch.
 
 ## Default Frontend Stack
 
 - Empty target directory or unspecified stack: create a React project and use Ant Design as the UI component framework.
-- Existing React project: reuse existing React version and introduce/use Ant Design for form, input, button, modal, drawer, message/toast, tabs, pagination, loading, and empty/error states.
+- Existing React project: reuse existing React version and introduce/use Ant Design for layout/grid, form, input, button, card, modal, drawer, message/toast, tabs, list, pagination, rating, tag, loading, and empty/error states.
+- Do not merely install Ant Design. Corresponding UI must use Ant Design components: Layout/ConfigProvider, Row/Col/Flex/Space, Form/Input/Button, Card, Tabs, List, Drawer, Modal, Rate, App/message, Empty/Spin/Alert/Tag.
 - Existing non-React project: follow the existing stack unless the user explicitly asks to migrate; keep the business contract unchanged.
 - User-specified stack overrides the default stack, but never overrides fixed APIs, globals, payloads, jumps, artifacts, login flow, preview/production separation, or interaction standards.
 
@@ -19,8 +20,14 @@ Prefer scripts over manually carrying long context:
 
 ```sh
 SKILL_DIR=/path/to/principal-mailbox-prompt
+node "$SKILL_DIR/scripts/interactive-wizard.mjs" --root . --out principal-mailbox-interactive
 node "$SKILL_DIR/scripts/ui-style-intake.mjs" --mode questions
 node "$SKILL_DIR/scripts/home-elements-dialog.mjs" --mode questions
+node "$SKILL_DIR/scripts/design-reference-kit.mjs" --mode study
+node "$SKILL_DIR/scripts/design-reference-kit.mjs" --mode scheme
+node "$SKILL_DIR/scripts/component-template-kit.mjs" --mode write --out principal-mailbox-component-template
+node "$SKILL_DIR/scripts/component-template-kit.mjs" --mode variants
+node "$SKILL_DIR/scripts/component-template-kit.mjs" --mode quality
 node "$SKILL_DIR/scripts/ui-style-intake.mjs" --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json
 node "$SKILL_DIR/scripts/task-pack.mjs" --mode context --root . --answers homepage.answers.json --style-file ui-style.brief.md --effect-image <approved-image>
 node "$SKILL_DIR/scripts/task-pack.mjs" --mode write --root . --out principal-mailbox-task-pack --answers homepage.answers.json --style-file ui-style.brief.md --effect-image <approved-image>
@@ -36,8 +43,10 @@ node "$SKILL_DIR/scripts/task-pack.mjs" --mode verify --root . --home-js dist-ho
 
 Use individual scripts only when a specific output is needed:
 
+- `interactive-wizard.mjs`: run the required user-reply gates interactively, apply 5-minute defaults, and write style, answers, references, template, design prompt, design-fidelity brief, and task pack.
 - `ui-style-intake.mjs`: ask for UI style, require confirmed component-list answers before design generation, emit design/effect-image prompt, and materialize the style fragment.
-- `component-template-kit.mjs`: emit current-project component-slot catalog and React + Ant Design template code.
+- `design-reference-kit.mjs`: emit learned reference patterns from world-famous university official sites and non-school excellent projects/design systems, plus a refined implementation scheme.
+- `component-template-kit.mjs`: emit current-project component-slot catalog, differentiated layout variants, UI quality rules, and React + Ant Design template code.
 - `design-fidelity-brief.mjs`: emit mandatory design decomposition and screenshot comparison gates.
 - `detect-build-artifacts.mjs`: infer package artifact format.
 - `home-elements-dialog.mjs`: ask homepage business choices and validate confirmed answers.

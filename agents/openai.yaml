@@ -1,4 +1,4 @@
 interface:
   display_name: "Principal Mailbox Prompt"
   short_description: "Script-driven 校长信箱 two-page frontend generation"
-  default_prompt: "按技能脚本执行校长信箱前端生成：先收集 UI 风格，5 分钟无应答用默认；再逐项询问当前项目组件槽位并保存 answers；用 component-template-kit 生成模板代码；再基于风格、组件清单、模板和完整合同用 imagegen2 优先生成并确认登录页+首页设计稿。设计稿必须严格包含已选组件槽位，缺槽位或新增未确认模块就重生成；代码前先产出 design-fidelity.map.md，落代码后截图对照设计稿一比一还原，不一致继续改。默认新项目 React + Ant Design。固定接口、window 全局变量、payload、跳转、登录 data redirect、错误反馈、验证码倒计时、我的信件登录后二级视图、两页打包产物和预览/生产隔离不可改。"
+  default_prompt: "按技能脚本执行校长信箱前端生成：优先运行 interactive-wizard.mjs 交互式收集 UI 风格、组件清单和设计稿确认引用，5 分钟无应答用默认；也可手动逐项运行脚本。用 design-reference-kit 学习世界名校官网和非学校优秀项目/设计系统，整理优美实现方案；用 component-template-kit 生成模板代码、layout variants 和 UI 质量规则；再基于风格、组件清单、参考学习、layoutVariant、学校视觉资产、模板和完整合同用 imagegen2 优先生成并确认登录页+首页设计稿。设计稿必须严格包含已选组件槽位，体现学校图片和差异化布局；缺槽位、缺校园图像、所有学校 layout 近似、小组件不齐或新增未确认模块就重生成。代码前先产出 design-fidelity.map.md，落代码后截图对照设计稿一比一还原，不一致继续改。默认新项目 React + Ant Design，必须真实使用 Ant Design 组件矩阵。固定接口、window 全局变量、payload、跳转、登录 data redirect、错误反馈、验证码倒计时、我的信件登录后二级视图、两页打包产物和预览/生产隔离不可改。"

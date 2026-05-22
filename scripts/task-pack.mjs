@@ -62,16 +62,18 @@ function renderContext() {
   return `校长信箱低上下文任务包
 
 先执行：
+0. 可交互执行整套输入门禁：${nodeCommand('interactive-wizard.mjs')} --root . --out principal-mailbox-interactive
 1. ${nodeCommand('ui-style-intake.mjs')} --mode questions
 2. 用户给出 UI 风格描述后，保存 ui-style.brief.md；此时不要生成设计稿。
 3. ${nodeCommand('home-elements-dialog.mjs')} --mode questions
 4. 逐项询问用户并保存 homepage.answers.json；只能在询问后由用户确认，或 5 分钟无应答时使用 timeout defaults。
-5. 生成/读取组件模板代码：${nodeCommand('component-template-kit.mjs')} --mode write --out principal-mailbox-component-template
-6. 组件清单敲定后，生成设计稿提示词：${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json
-7. 调用图片生成能力生成登录页+首页设计稿/效果图，并让用户确认；预览图必须严格遵守整个技能合同，不能只按视觉风格自由出图。
-8. ${nodeCommand('task-pack.mjs')} --mode context --root . --answers homepage.answers.json --style-file ui-style.brief.md --effect-image <approved-image>
-9. ${nodeCommand('task-pack.mjs')} --mode write --root . --out principal-mailbox-task-pack --answers homepage.answers.json --style-file ui-style.brief.md --effect-image <approved-image>
-10. ${nodeCommand('detect-build-artifacts.mjs')} --root .
+5. 学习优秀参考并整理实现方案：${nodeCommand('design-reference-kit.mjs')} --mode study；${nodeCommand('design-reference-kit.mjs')} --mode scheme
+6. 生成/读取组件模板代码、layout variants 和 UI 质量规则：${nodeCommand('component-template-kit.mjs')} --mode write --out principal-mailbox-component-template
+7. 组件清单敲定后，生成设计稿提示词：${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json
+8. 调用图片生成能力生成登录页+首页设计稿/效果图，并让用户确认；预览图必须严格遵守整个技能合同，不能只按视觉风格自由出图。
+9. ${nodeCommand('task-pack.mjs')} --mode context --root . --answers homepage.answers.json --style-file ui-style.brief.md --effect-image <approved-image>
+10. ${nodeCommand('task-pack.mjs')} --mode write --root . --out principal-mailbox-task-pack --answers homepage.answers.json --style-file ui-style.brief.md --effect-image <approved-image>
+11. ${nodeCommand('detect-build-artifacts.mjs')} --root .
 
 视觉前置：
 ${styleFragment()}
@@ -83,9 +85,14 @@ ${runScript('detect-build-artifacts.mjs', ['--root', root])}
 ${homeFragment()}
 
 核心执行命令：
+- 交互式向导：${nodeCommand('interactive-wizard.mjs')} --root . --out principal-mailbox-interactive
 - 询问 UI 风格：${nodeCommand('ui-style-intake.mjs')} --mode questions
 - 询问现有项目组件清单：${nodeCommand('home-elements-dialog.mjs')} --mode questions
-- 生成组件模板代码：${nodeCommand('component-template-kit.mjs')} --mode write --out principal-mailbox-component-template
+- 学习优秀参考：${nodeCommand('design-reference-kit.mjs')} --mode study
+- 生成优美实现方案：${nodeCommand('design-reference-kit.mjs')} --mode scheme
+- 生成组件模板代码、layout variants 和 UI 质量规则：${nodeCommand('component-template-kit.mjs')} --mode write --out principal-mailbox-component-template
+- 查看 layout variants：${nodeCommand('component-template-kit.mjs')} --mode variants
+- 查看 UI 质量规则：${nodeCommand('component-template-kit.mjs')} --mode quality
 - 组件清单敲定后生成设计稿提示词：${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json
 - 生成设计还原门禁：${nodeCommand('design-fidelity-brief.mjs')} --mode brief --style-file ui-style.brief.md --answers homepage.answers.json --effect-image <approved-image>
 - 生成完整 prompt：${nodeCommand('frontend-prompt-kit.mjs')} --mode prompt --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json
@@ -97,12 +104,16 @@ ${homeFragment()}
 
 低智能模型规则：
 - 业务实现前必须先拿到 UI 风格、现有项目组件清单答案、组件模板代码、以及基于这些槽位生成并确认的设计稿；缺少时先询问，5 分钟无应答则使用脚本默认值继续。
-- 设计稿必须由用户样式描述、组件清单和技能合同驱动，未选槽位不能出现，不允许自由发挥新增模块；设计稿缺槽位或乱加模块时必须重生成。
+- 设计稿必须由用户样式描述、组件清单、优秀项目学习摘要、layoutVariant、学校视觉资产和技能合同驱动，未选槽位不能出现，不允许自由发挥新增模块；设计稿缺槽位、缺学校图片或乱加模块时必须重生成。
+- 参考不局限于学校官网；必须同时吸收世界名校官网、公共服务设计系统、产品官网/设计系统和 Ant Design/Pro Layout 的优点，但只能转译到校长信箱组件槽位。
 - 代码前必须生成 design-fidelity.map.md；代码后必须截图对照设计稿并修正到无明显偏差。
 - 生成预览图/设计稿时也必须遵守整个技能合同：两页入口、组件清单、登录后二级我的信件、交互状态、预览/生产隔离都不能漏。
 - 实现任务必须创建或修改真实前端工程文件。
 - 不要复制长合同进上下文；按 principal-mailbox-task-pack 里的文件逐项执行。
 - 空目录或未指定技术栈时默认 React + Ant Design；已有 React 工程默认使用 Ant Design UI 组件。
+- React + Ant Design 不得只引入不用；表单、按钮、栅格、卡片、列表、标签页、抽屉、弹窗、评分、消息、空态、加载和错误态必须使用 Ant Design 对应组件。
+- 小组件必须按 24px 栅格和 8px 子栅格对齐；卡片等高、表单错误位置稳定、列表列宽固定，截图发现不齐必须修。
+- decorativeAssets=yes 时必须有校徽/Logo、校园主图、地标建筑、校园纹理等至少两类真实或 imagegen2 生成的学校视觉资产。
 - 我的信件列表只能作为登录后的首页二级视图实现；未登录只跳登录并带 view=mail redirect。
 - 预览环境和生产产物必须隔离；生产 JS 纯净，不含 mock、测试数据、/preview、__artifact、localhost 或预览 shell。
 - 样式细节不入合同；业务/API/交互/产物格式必须完整。`
@@ -123,17 +134,18 @@ function writePack() {
     '03-homepage.fragment.md': homeFragment(),
     '04-design-image-prompt.md': stylePrompt(),
     '05-style.fragment.md': styleFragment(),
-    '06-component-template.md': componentTemplate(),
-    '07-design-fidelity.md': designFidelityBrief(),
-    '08-artifacts.md': runScript('detect-build-artifacts.mjs', ['--root', root]),
-    '08-artifacts.json': runScript('detect-build-artifacts.mjs', ['--root', root, '--json']),
-    '09-prompt.md': promptKit('prompt'),
-    '10-steps.md': promptKit('steps'),
-    '11-files.md': promptKit('files'),
-    '12-business.md': promptKit('business'),
-    '13-artifacts.md': promptKit('artifacts'),
-    '14-checklist.md': promptKit('checklist'),
-    '15-commands.md': renderCommands()
+    '06-design-reference.md': designReference(),
+    '07-component-template.md': componentTemplate(),
+    '08-design-fidelity.md': designFidelityBrief(),
+    '09-artifacts.md': runScript('detect-build-artifacts.mjs', ['--root', root]),
+    '09-artifacts.json': runScript('detect-build-artifacts.mjs', ['--root', root, '--json']),
+    '10-prompt.md': promptKit('prompt'),
+    '11-steps.md': promptKit('steps'),
+    '12-files.md': promptKit('files'),
+    '13-business.md': promptKit('business'),
+    '14-artifacts.md': promptKit('artifacts'),
+    '15-checklist.md': promptKit('checklist'),
+    '16-commands.md': renderCommands()
   }
 
   for (const [fileName, content] of Object.entries(files)) {
@@ -164,24 +176,27 @@ function renderReadme() {
 1. \`01-ui-style-question.md\`: 先问用户 UI 风格描述。
 2. \`02-homepage.answers.json\`: 现有项目组件槽位选择。必须先逐项询问；用户确认或 5 分钟超时默认后才能继续。
 3. \`03-homepage.fragment.md\`: 可直接贴给实现模型的组件清单配置。
-4. \`04-design-image-prompt.md\`: 基于风格和组件清单生成登录页+首页设计稿/效果图。
+4. \`04-design-image-prompt.md\`: 基于风格、组件清单和优秀参考生成登录页+首页设计稿/效果图。
 5. \`05-style.fragment.md\`: 已确认风格、组件清单和设计稿对实现模型的约束。
-6. \`06-component-template.md\`: 当前项目组件槽位目录和模板代码入口。
-7. \`07-design-fidelity.md\`: 设计稿拆解、代码前还原清单、代码后截图对照门禁。
-8. \`08-artifacts.md/json\`: 当前构建产物格式。不要猜 HTML 或 JS，以这里和实际 build 输出为准。
-9. \`09-prompt.md\`: 完整生成提示词。
-10. \`10-steps.md\`: 小步实现清单。
-11. \`11-files.md\`: 必须落地的工程文件。
-12. \`12-business.md\`: 业务逻辑和交互标准。
-13. \`13-artifacts.md\`: 构建产物合同。
-14. \`14-checklist.md\`: 最终验收。
-15. \`15-commands.md\`: 预览、构建、验证命令。
+6. \`06-design-reference.md\`: 世界名校官网 + 非学校优秀项目/设计系统的学习摘要和优美实现方案。
+7. \`07-component-template.md\`: 当前项目组件槽位目录、layout variants、Ant Design 质量规则和模板代码入口。
+8. \`08-design-fidelity.md\`: 设计稿拆解、代码前还原清单、代码后截图对照门禁。
+9. \`09-artifacts.md/json\`: 当前构建产物格式。不要猜 HTML 或 JS，以这里和实际 build 输出为准。
+10. \`10-prompt.md\`: 完整生成提示词。
+11. \`11-steps.md\`: 小步实现清单。
+12. \`12-files.md\`: 必须落地的工程文件。
+13. \`13-business.md\`: 业务逻辑和交互标准。
+14. \`14-artifacts.md\`: 构建产物合同。
+15. \`15-checklist.md\`: 最终验收。
+16. \`16-commands.md\`: 预览、构建、验证命令。
 
 硬规则：
-- 先收集 UI 风格描述，再确认现有项目组件清单，按模板填槽，最后基于组件槽位生成并确认设计稿，再进入业务实现。
+- 先收集 UI 风格描述，再确认现有项目组件清单，学习世界名校官网和非学校优秀项目，选择差异化 layoutVariant，按模板填槽，最后基于组件槽位和学校视觉资产生成并确认设计稿，再进入业务实现。
 - 实现任务必须创建或修改真实前端工程文件。
-- 设计稿必须由已确认组件槽位和技能合同驱动，不允许自由发挥新增模块；缺槽位或乱加模块就重生成。
+- 设计稿必须由已确认组件槽位、layoutVariant、学校视觉资产和技能合同驱动，不允许自由发挥新增模块；缺槽位、缺校园图片或乱加模块就重生成。
+- 参考不局限于学校官网；必须把公共服务、产品官网、设计系统、Ant Design/Pro Layout 的优点转译为校长信箱实现方案。
 - 代码必须按确认设计稿一比一还原；代码前写 design-fidelity.map.md，代码后截图对比并修正。
+- React + Ant Design 工程必须真实使用 Ant Design 组件矩阵；小组件不齐、卡片不等高、表单错误漂移时不能交付。
 - 样式只来自用户风格输入、组件清单答案和确认后的设计稿；不要把样式细节当业务合同。
 - 接口、全局变量、payload、跳转 URL、交互状态、验证码倒计时和当前产物格式不可漏。`
 }
@@ -196,9 +211,14 @@ ${nodeCommand('task-pack.mjs')} --mode context --root . --answers homepage.answe
 
 视觉前置：
 \`\`\`sh
+${nodeCommand('interactive-wizard.mjs')} --root . --out principal-mailbox-interactive
 ${nodeCommand('ui-style-intake.mjs')} --mode questions
 ${nodeCommand('home-elements-dialog.mjs')} --mode questions
+${nodeCommand('design-reference-kit.mjs')} --mode study
+${nodeCommand('design-reference-kit.mjs')} --mode scheme
 ${nodeCommand('component-template-kit.mjs')} --mode write --out principal-mailbox-component-template
+${nodeCommand('component-template-kit.mjs')} --mode variants
+${nodeCommand('component-template-kit.mjs')} --mode quality
 ${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json
 ${nodeCommand('design-fidelity-brief.mjs')} --mode brief --style-file ui-style.brief.md --answers homepage.answers.json --effect-image <approved-image>
 \`\`\`
@@ -275,8 +295,20 @@ function styleFragment() {
   return runScript('ui-style-intake.mjs', scriptArgs)
 }
 
+function designReference() {
+  return `${runScript('design-reference-kit.mjs', ['--mode', 'study'])}
+
+${runScript('design-reference-kit.mjs', ['--mode', 'scheme'])}
+
+${runScript('design-reference-kit.mjs', ['--mode', 'checklist'])}`
+}
+
 function componentTemplate() {
   return `${runScript('component-template-kit.mjs', ['--mode', 'catalog'])}
+
+${runScript('component-template-kit.mjs', ['--mode', 'variants'])}
+
+${runScript('component-template-kit.mjs', ['--mode', 'quality'])}
 
 模板代码：
 

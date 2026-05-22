@@ -18,15 +18,19 @@ Script-first skill for weaker models. Use scripts instead of paraphrasing the co
 
 Run these gates in order before any business implementation, task pack, mock preview, or release artifact:
 
+Interactive shortcut: run `interactive-wizard.mjs --root . --out principal-mailbox-interactive`. It walks through the gates below, waits for user input, applies 5-minute defaults, writes all intermediate files, and emits the task pack.
+
 1. **UI style**: ask with `ui-style-intake.mjs --mode questions`; if no answer after 5 minutes, write defaults with `ui-style-intake.mjs --mode default-style > ui-style.brief.md`.
 2. **Component list**: after style and before image generation, ask with `home-elements-dialog.mjs --mode questions`; this asks for current-project component slots, not freeform modules. Save `homepage.answers.json` with `"__confirmedByUser": true`, or after timeout run `home-elements-dialog.mjs --mode defaults > homepage.answers.json`.
 3. **Design image**: generate a prompt with `ui-style-intake.mjs --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json`, then create one 登录页+首页 design image, preferably with imagegen2. Ask for confirmation; if no answer after 5 minutes, accept the image.
 
-Template rules: use the current project component-slot structure as the skeleton. Run `component-template-kit.mjs --mode catalog` or `--mode write` to get template code. The user style description decides layout frame and style tokens; the user component list decides which existing slots are filled. Do not invent modules outside the selected slots.
+Reference rules: before design generation, run `design-reference-kit.mjs --mode study` and `--mode scheme`. Learn from world-famous university official sites and from non-school excellent projects/design systems such as public-service design systems, product websites, and Ant Design/Pro Layout. Only absorb information architecture, service flow, visual craft, component systems, and layout strategies; do not copy any specific website, image, text, or template.
 
-Design image rules: it must strictly follow the whole skill contract, confirmed component list, 登录页/首页 only, login-only 我的信件 secondary view, React + Ant Design default component model, error/loading/disabled states, SMS countdown, and preview/production separation. Enabled component slots must appear; disabled or unconfirmed slots must not. If the image omits required slots or invents modules, regenerate it before coding.
+Template rules: use the current project component-slot structure as the skeleton. Run `component-template-kit.mjs --mode catalog`, `--mode variants`, `--mode quality`, or `--mode write` to get template code, layout variants, and UI quality gates. The user style description decides school identity, layout variant, visual assets, style tokens, and density; the user component list decides which existing slots are filled. Do not invent modules outside the selected slots.
 
-Design-to-code rules: after design confirmation, run `design-fidelity-brief.mjs` and create `design-fidelity.map.md` before UI coding. The code must restore the confirmed design one-to-one for page structure, module placement, visual hierarchy, density, and interaction-state presentation. After implementation, preview and screenshot 登录页 and 首页, compare them against the design image, and keep iterating until there is no obvious structural or visual mismatch.
+Design image rules: it must strictly follow the whole skill contract, confirmed component list, 登录页/首页 only, login-only 我的信件 secondary view, React + Ant Design component matrix, error/loading/disabled states, SMS countdown, and preview/production separation. Enabled component slots must appear; disabled or unconfirmed slots must not. Each school must have a differentiated layout variant; repeated same-page skeletons are invalid. decorativeAssets=yes requires at least two school visual assets, such as logo, campus hero image, landmark building, campus texture, or imagegen2-generated equivalents. If the image omits required slots, lacks school images, uses the same layout for every school, invents modules, or shows poorly aligned widgets, regenerate it before coding.
+
+Design-to-code rules: after design confirmation, run `design-fidelity-brief.mjs` and create `design-fidelity.map.md` before UI coding. The code must restore the confirmed design one-to-one for page structure, module placement, visual hierarchy, density, school images, Ant Design component use, alignment, and interaction-state presentation. React implementations must use Ant Design for layout/grid, form, input, button, card, tabs, list, drawer, modal, rating, message, empty/loading/error states, and tags. After implementation, preview and screenshot 登录页 and 首页, compare them against the design image, and keep iterating until there is no obvious structural, alignment, component, or visual mismatch.
 
 ## Fixed Contract
 
@@ -37,15 +41,20 @@ Design-to-code rules: after design confirmation, run `design-fidelity-brief.mjs`
 - Artifact format: detect from the target project with `detect-build-artifacts.mjs`; this repo currently builds two IIFE Web Component JS files, `portal.min.js` and `login.min.js`.
 - Preview/production split: preview may use mock server, mock globals, test data, and `/preview/*`; production JS must not contain mock data, preview routes, localhost, `__artifact`, host-global overrides, or preview-server dependency.
 - 我的信件列表: login-only secondary view under 首页. It is not a separate package artifact and must not request or render before login.
-- Style is not contract. Visual direction comes only from user style, confirmed component-list answers, component template, and confirmed design image.
+- Style is not contract. Visual direction comes only from user style, confirmed component-list answers, component template, selected layout variant, school visual assets, Ant Design quality rules, and confirmed design image.
 
 ## Commands
 
 ```sh
 SKILL_DIR=/path/to/principal-mailbox-prompt
+node "$SKILL_DIR/scripts/interactive-wizard.mjs" --root . --out principal-mailbox-interactive
 node "$SKILL_DIR/scripts/ui-style-intake.mjs" --mode questions
 node "$SKILL_DIR/scripts/home-elements-dialog.mjs" --mode questions
 node "$SKILL_DIR/scripts/component-template-kit.mjs" --mode write --out principal-mailbox-component-template
+node "$SKILL_DIR/scripts/component-template-kit.mjs" --mode variants
+node "$SKILL_DIR/scripts/component-template-kit.mjs" --mode quality
+node "$SKILL_DIR/scripts/design-reference-kit.mjs" --mode study
+node "$SKILL_DIR/scripts/design-reference-kit.mjs" --mode scheme
 node "$SKILL_DIR/scripts/ui-style-intake.mjs" --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json
 node "$SKILL_DIR/scripts/detect-build-artifacts.mjs" --root .
 node "$SKILL_DIR/scripts/task-pack.mjs" --mode context --root . --style-file ui-style.brief.md --answers homepage.answers.json --effect-image <approved-image>
@@ -58,19 +67,21 @@ node "$SKILL_DIR/scripts/task-pack.mjs" --mode verify --root . --home-js dist-ho
 
 ## Implementation Order
 
-1. Collect UI style, confirm component list, write/read the component template, generate/confirm a contract-compliant design image.
+1. Collect UI style, confirm component list, study references, write/read the component template, select a layout variant, require school visual assets, generate/confirm a contract-compliant design image.
 2. Detect scripts, entrypoints, and artifact format.
 3. Create `design-fidelity.map.md`, missing page entries, contract helpers, contract tests, and mock preview.
-4. Implement 登录页, interaction states, 首页 modules, and logged-in 我的信件 secondary view one-to-one against the design.
-5. Screenshot-compare preview pages against the design, polish responsive behavior, build two artifacts, run contract lint, and smoke-test mock preview.
+4. Implement 登录页, interaction states, 首页 modules, and logged-in 我的信件 secondary view one-to-one against the design, using Ant Design components for all matching UI controls.
+5. Screenshot-compare preview pages against the design, verify school images, layout difference, AntD component fidelity, small-widget alignment, responsive behavior, build two artifacts, run contract lint, and smoke-test mock preview.
 
 ## Script Map
 
 - `frontend-prompt-kit.mjs`: compressed prompt, steps, file list, business rules, artifacts, checklist, contract JSON.
+- `interactive-wizard.mjs`: terminal wizard for required user replies, 5-minute defaults, reference/template generation, design prompt, design reference capture, and task-pack writing.
 - `task-pack.mjs`: compact context, numbered task pack, and verification wrapper.
 - `ui-style-intake.mjs`: style/default intake, homepage-gated image prompt, visual gate fragment.
 - `home-elements-dialog.mjs`: current-project component-slot questions, timeout defaults, answer fragment.
-- `component-template-kit.mjs`: component catalog and React + Ant Design template code based on the existing project blocks.
+- `component-template-kit.mjs`: component catalog, layout variants, UI quality rules, and React + Ant Design template code based on the existing project blocks.
+- `design-reference-kit.mjs`: learned reference patterns from world-famous university official sites and non-school excellent websites/design systems, plus a refined implementation scheme.
 - `design-fidelity-brief.mjs`: mandatory design decomposition and screenshot comparison gate.
 - `detect-build-artifacts.mjs`: build/artifact inference from package and bundler config.
 - `mock-preview-server.mjs`: local mock APIs, host globals, login/home previews, fixed jump pages.

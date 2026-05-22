@@ -9,7 +9,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 
 const contract = {
   visualPreflight:
-    '生成/实现前必须先收集用户 UI 风格描述，再逐项敲定现有项目组件槽位清单，然后基于“风格+已确认组件槽位”和整个技能合同补足专业学校门户框架、学校特色和精致视觉要求，吸收全球高校首页优秀模式并创新差异化，最后优先用 imagegen2 生成并确认一张登录页+首页设计稿/效果图；设计稿必须严格包含技能要求组件槽位，缺槽位或新增未确认模块必须重生成；缺少任一项时不得开始工程实现。',
+    '生成/实现前必须先收集用户 UI 风格描述，再逐项敲定现有项目组件槽位清单，然后学习世界名校官网与非学校优秀项目/设计系统，选择差异化 layoutVariant、规划学校视觉资产，并基于“风格+组件槽位+参考学习+layoutVariant+学校图片”和整个技能合同补足专业学校门户框架、学校特色和精致视觉要求，吸收全球高校首页优秀模式并创新差异化，最后优先用 imagegen2 生成并确认一张登录页+首页设计稿/效果图；设计稿必须严格包含技能要求组件槽位和学校图片，缺槽位、缺学校视觉资产、组件对齐差或新增未确认模块必须重生成；缺少任一项时不得开始工程实现。',
   pages: [
     '业务产物固定为两个入口：登录页、首页；打包格式按当前 Vite library/component 构建反推',
     '登录页：手机号、短信验证码、60s倒计时、登录、统一认证入口、校验',
@@ -95,7 +95,7 @@ const contract = {
 
 const requiredFiles = [
   ['project entry', 'package/build config and app entry files; create them when starting from an empty project'],
-  ['component layout template', 'template equivalent to PrincipalMailboxTemplate with current project slots: appShell, loginBlock, actionCards, publicLettersBlock, servicePhoneBlock, noticeDialog, mailListBlock, userMenu'],
+  ['component layout template', 'template equivalent to PrincipalMailboxTemplate with current project slots, layout variants, school image assets, and Ant Design component matrix'],
   ['login component entry', '登录页 Web Component entry equivalent to src/entry-login-component.ts'],
   ['home component entry', '首页 Web Component entry equivalent to src/entry-home-component.ts'],
   ['portal contract', 'fixed endpoints, fixed jumps, host globals, buildPortalUrl, hasLoggedInUser'],
@@ -150,7 +150,7 @@ const interactionRules = [
 contract.businessRules = businessRules
 contract.interactionRules = interactionRules
 contract.styleBoundary =
-  'Do not encode current style details; new visual direction comes from the user style description, confirmed component slot answers, and confirmed design image. Code must restore the confirmed design one-to-one, with a design-fidelity map before coding and screenshot comparison before handoff.'
+  'Do not encode current style details; new visual direction comes from the user style description, confirmed component slot answers, selected layoutVariant, school image assets, Ant Design component matrix, and confirmed design image. Code must restore the confirmed design one-to-one, with a design-fidelity map before coding and screenshot comparison before handoff.'
 
 if (args.help) {
   console.log(`Usage:
@@ -226,6 +226,9 @@ ${homeFragment()}
 现有项目组件模板：
 ${componentTemplateFragment()}
 
+优秀项目学习与优美实现方案：
+${designReferenceFragment()}
+
 交付强制要求：
 1. 如果任务是生成或实现前端项目，必须创建/修改真实工程文件，不允许只输出提示词、方案、清单或代码片段。
 2. 只有当用户明确要求“只生成提示词/文档/规范”时，才允许文本交付。
@@ -234,7 +237,7 @@ ${componentTemplateFragment()}
 
 技术栈默认规则：
 - ${contract.stack.rule}
-- 新建 React 项目时 UI 组件、表单、弹窗、抽屉、消息反馈、分页、标签页、按钮等默认使用 Ant Design；业务样式可用项目 CSS/CSS Modules/Less 等实现，但不要把样式细节写成业务合同。
+- 新建 React 项目时 UI 组件、Layout/Grid、表单、输入框、按钮、卡片、列表、弹窗、抽屉、消息反馈、分页、标签页、评分、空态/加载/错误态等默认使用 Ant Design；业务样式可用项目 CSS/CSS Modules/Less 等实现，但不要把样式细节写成业务合同。
 - 用户明确指定其他技术栈时，仍必须完整保留本合同的接口、全局变量、payload、跳转和交互标准。
 
 硬性产物：
@@ -256,13 +259,17 @@ ${contract.productionPurity.map((item) => `- ${item}`).join('\n')}
 
 样式边界：
 1. 本提示词只固化业务逻辑，不固化当前项目颜色、间距、图片、圆角、阴影、字体等样式细节。
-2. 新项目的视觉方向来自用户 UI 风格描述、用户确认的组件槽位清单、AI 补充的专业学校门户设计方向、全球高校首页优秀模式的综合吸收和已确认设计稿/效果图。
+2. 新项目的视觉方向来自用户 UI 风格描述、用户确认的组件槽位清单、layoutVariant、学校视觉资产、AI 补充的专业学校门户设计方向、全球高校首页优秀模式的综合吸收和已确认设计稿/效果图。
 3. 设计稿/效果图必须在组件槽位清单敲定之后生成；设计时只能使用已确认槽位，未选择槽位不得出现在画面中，不允许自由发挥新增模块。
-4. 生成工程时必须按已确认设计稿实现页面结构、模块位置、视觉层级和交互状态；网页整体框架必须专业化，风格必须体现学校特色，界面必须精致优美。
-5. 不得复制任何单一高校首页模板；给不同学校出图时模板相似度不得高于 50%，至少在首页框架、主视觉构图、模块顺序、色彩系统、校园符号、组件处理六项中拉开差异。
-6. 不要把设计稿里的随机文案、虚构接口、额外页面或额外模块当成业务需求。
-7. 设计稿不符合技能元素要求时必须重生成，不能进入编码。
-8. 编码前必须拆解设计稿为 design-fidelity.map.md；编码后必须截图对照设计稿，一比一还原页面结构、模块位置、视觉层级、密度和交互状态。
+4. 每个学校必须选择或生成差异化 layoutVariant；不得所有学校复用同一个 layout 骨架。
+5. decorativeAssets=yes 时必须使用校徽/Logo、校园主图、地标建筑、校园纹理等至少两类真实或 imagegen2 生成的学校视觉资产；不能只用渐变、色块和抽象图形。
+6. 生成工程时必须按已确认设计稿实现页面结构、模块位置、视觉层级和交互状态；网页整体框架必须专业化，风格必须体现学校特色，界面必须精致优美。
+7. React + Ant Design 项目必须真实使用 Ant Design 组件矩阵；表单、按钮、栅格、卡片、列表、标签页、抽屉、弹窗、评分、消息、空态、加载、错误态不得用 div/span 伪造。
+8. 小组件必须按 24px 栅格和 8px 子栅格对齐；同排卡片等高、表单错误位稳定、验证码按钮宽度稳定、列表列宽固定。
+9. 不得复制任何单一高校首页模板；给不同学校出图时模板相似度不得高于 50%，至少在首页框架、主视觉构图、模块顺序、色彩系统、校园符号、组件处理六项中拉开差异。
+10. 不要把设计稿里的随机文案、虚构接口、额外页面或额外模块当成业务需求。
+11. 设计稿不符合技能元素、学校图片、layout 差异化或 Ant Design 对齐要求时必须重生成，不能进入编码。
+12. 编码前必须拆解设计稿为 design-fidelity.map.md；编码后必须截图对照设计稿，一比一还原页面结构、模块位置、视觉层级、密度和交互状态。
 
 全局变量：
 ${contract.globals.map((item) => `- ${item}`).join('\n')}
@@ -349,14 +356,18 @@ PASS 0 输入冻结
 - 运行组件清单对话脚本，向用户确认当前项目组件槽位：${nodeCommand('home-elements-dialog.mjs')} --mode questions
 - 用户逐项确认后保存 homepage.answers.json；5 分钟无应答时可使用 timeout defaults；没有 --answers 时停止。
 - 不在组件清单对话中询问颜色、间距、图片等样式细节；样式只使用 PASS -1 的风格描述和后续确认设计稿。
-- 生成模板代码：${nodeCommand('component-template-kit.mjs')} --mode write --out principal-mailbox-component-template
+- 学习优秀参考：${nodeCommand('design-reference-kit.mjs')} --mode study；${nodeCommand('design-reference-kit.mjs')} --mode scheme
+- 参考不局限于学校官网；必须同时吸收世界名校官网、公共服务设计系统、产品官网/设计系统和 Ant Design/Pro Layout 的优点，并转译到校长信箱组件槽位。
+- 生成模板代码、layout variants 和 UI 质量规则：${nodeCommand('component-template-kit.mjs')} --mode write --out principal-mailbox-component-template
 - 组件清单敲定后生成设计稿提示词：${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json
 - 优先调用 imagegen2 生成一张登录页 + 首页设计稿/效果图；如果环境没有 imagegen2，使用可用图像生成能力，但必须保留增强后的学校门户设计提示词。
 - 设计稿必须严格使用 homepage.answers.json 中已确认的组件槽位：已选槽位必须呈现，未选槽位不得出现，不允许自由发挥新增业务模块。
+- 设计稿必须明确 layoutVariant，并至少使用两类学校视觉资产；如果只有渐变、色块、抽象图形、所有学校 layout 近似，或没有吸收非学校优秀项目的服务/组件/产品 craft，必须重生成。
+- React + Ant Design 设计必须呈现真实组件矩阵和对齐标准，不能把输入框、按钮、列表、标签页、弹窗、抽屉画成伪组件。
 - 预览图/设计稿必须严格遵守整个技能合同：两页入口、组件清单答案、我的信件登录后二级视图、React + Ant Design 默认组件模型、错误/loading/disabled/验证码倒计时状态、预览/生产隔离。
 - 设计稿必须综合吸收世界大学首页优秀模式并创新，不得复制单一模板；不同学校方案相似度不得高于 50%。
 - 让用户确认设计稿；用户要求调整时先重新生成设计稿。
-- 若设计稿没有严格覆盖技能说明中的登录页、首页、已选组件槽位、错误/loading/disabled、验证码倒计时、登录后二级我的信件和预览/生产隔离表达，必须重生成设计稿。
+- 若设计稿没有严格覆盖技能说明中的登录页、首页、已选组件槽位、layoutVariant、学校图片、Ant Design 组件质感、错误/loading/disabled、验证码倒计时、登录后二级我的信件和预览/生产隔离表达，必须重生成设计稿。
 - 没有已确认组件清单和已确认设计稿时，停止，不要生成任务包或工程文件。
 - 优先生成任务包：${nodeCommand('task-pack.mjs')} --mode write --root . --out principal-mailbox-task-pack --style-file ui-style.brief.md --effect-image <approved-image> --answers homepage.answers.json
 - 运行：${nodeCommand('design-fidelity-brief.mjs')} --mode brief --style-file ui-style.brief.md --answers homepage.answers.json --effect-image <approved-image>
@@ -398,6 +409,8 @@ PASS 1.6 设计还原拆解
 - 拆解登录页：整体构图、学校识别、表单区域、统一认证入口、背景/主视觉、按钮和错误/倒计时状态。
 - 拆解首页：头部、主视觉、模块顺序、模块数量、卡片比例、列表密度、二级我的信件入口/视图、弹窗/抽屉位置、页脚/辅助信息层级。
 - 记录主辅色、背景层次、边框/阴影/圆角倾向、字体层级、间距密度、图片/校徽/校园符号位置。
+- 记录 layoutVariant、学校视觉资产来源、Ant Design 组件映射和小组件对齐标准。
+- 对齐必须可验收：24px 栅格、8px 子栅格、同排卡片等高、表单 label/input/error 对齐、验证码按钮宽度稳定、列表 tag/code/date/action 固定列宽。
 - 先按 design-fidelity.map.md 写布局和样式骨架，再接业务数据；禁止先套通用 Ant Design 后台模板。
 
 PASS 2 Mock 与预览
@@ -513,8 +526,11 @@ ${homeFragment()}
 视觉前置：
 - 业务逻辑之前先完成 UI 风格描述输入、组件清单确认、基于组件槽位的设计稿生成和设计稿确认。
 - 使用 component-template-kit.mjs 输出当前项目组件结构模板；用户样式描述落入布局框架，用户组件清单填入组件槽位。
+- 使用 component-template-kit.mjs 输出 layout variants 和 UI 质量规则；必须选择差异化 layoutVariant，规划学校图片资产，并按 Ant Design 组件矩阵落地。
 - AI 必须补足专业网站整体框架、学校特色识别和精致优美的视觉要求，并优先用 imagegen2 出设计稿/效果图。
 - AI 必须学习吸收世界各地大学首页的成熟信息架构，博采众长、多创新；不同学校出图模板相似度不得高于 50%。
+- decorativeAssets=yes 时必须有校徽/Logo、校园主图、地标建筑、校园纹理中的至少两类，缺素材时用 imagegen2 生成。
+- 小组件对齐是验收项：卡片等高、表单错误位稳定、验证码按钮稳定、列表列宽固定。
 - 设计稿必须只使用已确认组件槽位，不允许自由发挥新增模块；代码必须按确认设计稿实现。
 - 设计稿缺技能槽位或新增未确认模块时必须重生成；代码前必须创建 design-fidelity.map.md，代码后必须截图对照设计稿一比一修正。
 - 生成预览图时必须遵守整个技能合同，不能只按视觉风格出图。
@@ -569,8 +585,15 @@ function renderChecklist() {
 - [ ] 组件清单已通过 home-elements-dialog.mjs 逐项询问，并传入用户确认或 5 分钟超时默认后的 --answers 文件。
 - [ ] 已在用户描述基础上补足专业学校门户框架、学校特色和精致优美视觉要求。
 - [ ] 已吸收世界大学首页优秀模式并创新差异化；不同学校效果图模板相似度不高于 50%。
+- [ ] 已运行 design-reference-kit.mjs，学习世界名校官网和非学校优秀项目/设计系统，并转译成校长信箱实现方案。
+- [ ] 参考不局限于学校官网；已吸收公共服务任务流、产品级组件密度、品牌系统、微交互或工程化设计规范至少两类。
+- [ ] 已明确 layoutVariant；不同学校没有默认复用同一 layout 骨架。
+- [ ] decorativeAssets=yes 时，登录页和首页至少使用两类学校视觉资产：校徽/Logo、校园主图、地标建筑、校园纹理；缺素材时已用 imagegen2 生成。
 - [ ] 已在组件清单敲定之后，优先用 imagegen2 生成一张登录页 + 首页设计稿/效果图，并经用户确认或明确接受。
 - [ ] 设计稿严格使用已确认组件槽位：已选槽位有位置，未选槽位未出现，没有新增未确认业务模块。
+- [ ] 设计稿不是纯渐变/纯白卡片模板；学校图片和校园文化符号是首屏视觉信号。
+- [ ] React + Ant Design 已真实使用组件矩阵，不是只安装或只少量使用 AntD。
+- [ ] 小组件对齐通过：24px 栅格、8px 子栅格、卡片等高、表单错误位稳定、验证码按钮宽度稳定、列表列宽固定。
 - [ ] 设计稿严格符合技能说明槽位；缺必需槽位、未选槽位出现或新增未确认模块时已重生成，没有放行到代码阶段。
 - [ ] 预览图/设计稿严格遵守整个技能合同，没有漏掉两页入口、登录后二级我的信件、错误反馈、验证码倒计时、loading/disabled 和预览/生产隔离约束。
 - [ ] 已创建 design-fidelity.map.md，并先按它搭建布局/样式骨架。
@@ -632,24 +655,37 @@ function renderVisualGate() {
 - ${styleLine}
 - 组件清单：必须已通过 home-elements-dialog.mjs 逐项询问并传入 --answers；设计稿只能使用已确认组件槽位。
 - AI 补充设计方向：专业学校门户整体框架、学校特色识别、精致优美页面质感；不得直接照搬过短描述生成简陋页面。
-- 全球高校借鉴约束：吸收优秀大学首页的信息架构和视觉组织方式，但不得复制单一模板；不同学校模板相似度不得高于 50%。
+- 参考学习约束：先运行 design-reference-kit.mjs 学习世界名校官网和非学校优秀项目/设计系统；吸收信息架构、公共服务任务流、产品级组件密度、品牌 craft 和工程规范，但不得复制单一模板；不同学校模板相似度不得高于 50%。
 - 全技能约束：生成预览图/设计稿时必须遵守整个技能合同，不能自由发挥覆盖业务、接口、跳转、交互状态或产物格式。
+- UI 质量约束：必须选择 layoutVariant，使用至少两类学校视觉资产，并按 Ant Design 组件矩阵设计；小组件对不齐或像手写 div 时不得进入编码。
 - ${imageLine}
 - 可运行脚本：${nodeCommand('ui-style-intake.mjs')} --mode questions
 - 组件清单确认脚本：${nodeCommand('home-elements-dialog.mjs')} --mode questions
+- 优秀项目参考脚本：${nodeCommand('design-reference-kit.mjs')} --mode study；${nodeCommand('design-reference-kit.mjs')} --mode scheme
+- layout 与质量规则脚本：${nodeCommand('component-template-kit.mjs')} --mode variants；${nodeCommand('component-template-kit.mjs')} --mode quality
 - 可生成设计稿提示词：${nodeCommand('ui-style-intake.mjs')} --mode prompt --style-file ui-style.brief.md --answers homepage.answers.json
 - 确认后的设计稿是代码实现依据；不得覆盖固定业务/API/全局变量/payload/跳转/产物格式/交互状态。`
 }
 
 function componentTemplateFragment() {
   return `${runScript('component-template-kit.mjs', ['--mode', 'catalog'])}
+${runScript('component-template-kit.mjs', ['--mode', 'variants'])}
+${runScript('component-template-kit.mjs', ['--mode', 'quality'])}
 - 写出模板代码：${nodeCommand('component-template-kit.mjs')} --mode write --out principal-mailbox-component-template
-- 实现时先用用户样式描述落 layout frame 和 style tokens，再按 homepage.answers.json 填入已选组件槽位。`
+- 实现时先用用户样式描述选择 layoutVariant、规划学校图片资产并落 style tokens，再按 homepage.answers.json 填入已选组件槽位。
+- React + Ant Design 实现时必须使用 Ant Design 组件矩阵；小组件不齐、伪组件、缺学校图片都不能交付。`
+}
+
+function designReferenceFragment() {
+  return `${runScript('design-reference-kit.mjs', ['--mode', 'study'])}
+
+${runScript('design-reference-kit.mjs', ['--mode', 'scheme'])}`
 }
 
 function renderDesignFidelityGate() {
   const effectImage = args['effect-image'] || args.image || '<approved-design-image>'
   return `- 设计稿合规先于编码：确认设计稿必须严格按技能说明和 homepage.answers.json 出图；缺必需组件槽位、出现未选槽位、或新增未确认模块时，先重生成设计稿。
+- UI 质量合规先于编码：确认设计稿必须有差异化 layoutVariant、学校图片资产、Ant Design 组件质感和对齐标准；所有学校 layout 近似、缺校园图片、小组件明显不齐时，先重生成设计稿。
 - 编码前运行：${nodeCommand('design-fidelity-brief.mjs')} --mode brief --style-file ui-style.brief.md --answers homepage.answers.json --effect-image ${effectImage}
 - 编码前创建 design-fidelity.map.md，逐项拆解登录页和首页的结构、模块顺序、比例密度、视觉层级、状态表达。
 - Ant Design 只能作为组件基础，不能把页面做成通用默认后台模板；布局、密度、学校特色和模块位置必须服从确认设计稿。
